@@ -1,0 +1,7 @@
+{
+  "name": "SmartPlate - AI Nutrition Assistant",
+  "description": "A comprehensive nutritional tracking application that uses AI insights to monitor calorie intake, macronutrients, and fitness goals based on meal images and user biometrics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
