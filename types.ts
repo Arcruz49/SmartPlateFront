@@ -1,33 +1,35 @@
 
 export enum BiologicalSex {
-  Male = 'Male',
-  Female = 'Female'
+  Male = 'male',
+  Female = 'female'
 }
 
 export enum TrainingType {
-  Strength = 'Strength',
-  Cardio = 'Cardio',
-  Crossfit = 'Crossfit',
-  Other = 'Other'
+  Strength = 'strength',
+  Cardio = 'cardio',
+  Sports = 'sports',
+  Mixed = 'mixed'
 }
 
 export enum TrainingIntensity {
-  Low = 'Low',
-  Moderate = 'Moderate',
-  High = 'High'
+  Low = 'low',
+  Moderate = 'moderate',
+  High = 'high'
 }
 
 export enum DailyActivityLevel {
-  Sedentary = 'Sedentary',
-  LightlyActive = 'LightlyActive',
-  ModeratelyActive = 'ModeratelyActive',
-  VeryActive = 'VeryActive'
+  Sedentary = 'sedentary',
+  Light = 'light',
+  Moderate = 'moderate',
+  Active = 'active',
+  VeryActive = 'very_active'
 }
 
 export enum Goal {
-  WeightLoss = 'WeightLoss',
-  Maintenance = 'Maintenance',
-  MuscleGain = 'MuscleGain'
+  Maintenance = 'maintain',
+  MuscleGain = 'gain_muscle',
+  WeightLoss = 'lose_fat',
+  Performance = 'performance'
 }
 
 export interface UserData {
@@ -54,6 +56,7 @@ export interface UserInsights {
 }
 
 export interface Meal {
+  mealId: string;
   mealName: string;
   description: string;
   meal_date: string;
