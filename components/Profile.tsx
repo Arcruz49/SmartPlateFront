@@ -17,18 +17,18 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
   const [showInsightPrompt, setShowInsightPrompt] = useState(false);
   
   const [formData, setFormData] = useState<UserData>({
-    weightKg: 70,
-    heightCm: 170,
-    age: 25,
-    biologicalSex: BiologicalSex.Male,
-    workoutsPerWeek: 3,
-    trainingType: TrainingType.Strength,
-    trainingIntensity: TrainingIntensity.Moderate,
-    dailyActivityLevel: DailyActivityLevel.Moderate,
-    goal: Goal.Maintenance,
-    sleepQuality: 3,
-    stressLevel: 3,
-    routineConsistency: 3
+    weightKg: null,
+    heightCm: null,
+    age: null,
+    biologicalSex: '' as BiologicalSex,
+    workoutsPerWeek: null,
+    trainingType: '' as TrainingType,
+    trainingIntensity: '' as TrainingIntensity,
+    dailyActivityLevel: '' as DailyActivityLevel,
+    goal: '' as Goal,
+    sleepQuality: null,
+    stressLevel: null,
+    routineConsistency: null
   });
 
   useEffect(() => {
