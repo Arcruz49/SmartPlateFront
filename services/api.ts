@@ -1,7 +1,12 @@
 
 import { AuthResponse, UserData, UserInsights, Meal } from '../types';
 
-const BASE_URL = 'http://localhost:5052';
+const getServerUrl = () => {
+  const hostname = window.location.hostname;
+  return `http://${hostname}:5052`;
+};
+
+const BASE_URL = getServerUrl();
 
 const getHeaders = (token?: string) => {
   const headers: Record<string, string> = {
