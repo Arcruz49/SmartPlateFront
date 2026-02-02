@@ -18,6 +18,17 @@ const getHeaders = (token?: string) => {
   return headers;
 };
 
+const handleResponse = async (res: Response) => {
+  if (res.status === 401) {
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'API Request failed');
+  }
+  return res.json();
+};
+
 export const api = {
   auth: {
     register: async (data: any): Promise<AuthResponse> => {
@@ -26,8 +37,7 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Registration failed');
-      return res.json();
+      return handleResponse(res);
     },
     login: async (data: any): Promise<AuthResponse> => {
       const res = await fetch(`${BASE_URL}/auth/login`, {
@@ -35,30 +45,23 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Login failed');
-      return res.json();
+      return handleResponse(res);
     },
   },
   user: {
     saveData: async (token: string, data: UserData): Promise<UserData> => {
-      // Sending flat JSON as per the requested format
       const res = await fetch(`${BASE_URL}/user/userdata`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to save user data');
-      }
-      return res.json();
+      return handleResponse(res);
     },
     getData: async (token: string): Promise<UserData> => {
       const res = await fetch(`${BASE_URL}/user/userdata`, {
         headers: getHeaders(token),
       });
-      if (!res.ok) throw new Error('Failed to fetch user data');
-      return res.json();
+      return handleResponse(res);
     },
   },
   insights: {
@@ -68,15 +71,13 @@ export const api = {
         headers: getHeaders(token),
         body: JSON.stringify({}),
       });
-      if (!res.ok) throw new Error('Failed to generate insights');
-      return res.json();
+      return handleResponse(res);
     },
     get: async (token: string): Promise<UserInsights> => {
       const res = await fetch(`${BASE_URL}/userinsights/userinsights`, {
         headers: getHeaders(token),
       });
-      if (!res.ok) throw new Error('Failed to fetch insights');
-      return res.json();
+      return handleResponse(res);
     },
   },
   meals: {
@@ -86,22 +87,19 @@ export const api = {
         headers: getHeaders(token),
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Failed to log meal');
-      return res.json();
+      return handleResponse(res);
     },
     getForDate: async (token: string, date: string): Promise<Meal[]> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal?Date=${date}`, {
         headers: getHeaders(token),
       });
-      if (!res.ok) throw new Error('Failed to fetch meals');
-      return res.json();
+      return handleResponse(res);
     },
     getById: async (token: string, mealId: string): Promise<Meal> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermealById?MealId=${mealId}`, {
         headers: getHeaders(token),
       });
-      if (!res.ok) throw new Error('Failed to fetch meal details');
-      return res.json();
+      return handleResponse(res);
     },
     delete: async (token: string, mealId: string): Promise<void> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal`, {
@@ -109,6 +107,7 @@ export const api = {
         headers: getHeaders(token),
         body: JSON.stringify({ MealId: mealId }),
       });
+      if (res.status === 401) throw new Error('Unauthorized');
       if (!res.ok) throw new Error('Failed to delete meal');
     },
   },

@@ -29,6 +29,12 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleLogout = () => {
+    setAuth(null);
+    localStorage.removeItem('sp_auth');
+    setActiveTab('dashboard');
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -49,108 +55,42 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    setAuth(null);
-    localStorage.removeItem('sp_auth');
-  };
-
   if (!auth) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200 overflow-hidden border border-slate-100">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
           <div className="p-8 text-center bg-emerald-600 text-white">
-            <div className="inline-flex p-3 bg-white/20 rounded-2xl mb-4">
-              <PieChart size={48} />
-            </div>
+            <PieChart size={48} className="mx-auto mb-4" />
             <h1 className="text-3xl font-extrabold">SmartPlate</h1>
-            <p className="text-emerald-100">Your AI-Powered Healthy Journey</p>
+            <p className="opacity-80">AI Nutrition Assistant</p>
           </div>
-          
           <div className="p-8">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              {isLogin ? <LogIn /> : <UserPlus />}
-              {isLogin ? 'Welcome Back' : 'Join SmartPlate'}
-            </h2>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
-                <ShieldCheck size={18} /> {error}
-              </div>
-            )}
-
+            <h2 className="text-xl font-bold mb-6">{isLogin ? 'Log In' : 'Create Account'}</h2>
+            {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>}
             <form onSubmit={handleAuth} className="space-y-4">
-              {!isLogin && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-200 active:scale-95 flex items-center justify-center disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : (isLogin ? 'Log In' : 'Sign Up')}
+              {!isLogin && <input type="text" placeholder="Name" required value={name} onChange={e => setName(e.target.value)} className="w-full p-3 rounded-xl border" />}
+              <input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 rounded-xl border" />
+              <input type="password" placeholder="Password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 rounded-xl border" />
+              <button type="submit" disabled={loading} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
+                {loading ? 'Wait...' : (isLogin ? 'Log In' : 'Sign Up')}
               </button>
             </form>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-              <button 
-                onClick={() => setIsLogin(!isLogin)} 
-                className="text-emerald-600 font-semibold hover:underline"
-              >
-                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
-              </button>
-            </div>
+            <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-6 text-emerald-600 font-bold hover:underline">
+              {isLogin ? "Join us today" : "Have an account? Log in"}
+            </button>
           </div>
         </div>
-        <p className="mt-8 text-slate-400 text-sm font-medium">© 2024 SmartPlate Nutrition Systems</p>
       </div>
     );
   }
 
   return (
-    <Layout 
-      user={auth} 
-      onLogout={handleLogout} 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab}
-    >
+    <Layout user={auth} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
+      {/* Fix: removed onLogout as it is not present in DashboardProps */}
       {activeTab === 'dashboard' && <Dashboard token={auth.token} />}
-      {activeTab === 'meals' && (
-        <MealLogger 
-          token={auth.token} 
-          onSuccess={() => setActiveTab('dashboard')} 
-        />
-      )}
-      {activeTab === 'profile' && <Profile token={auth.token} />}
+      {/* Fix: removed onLogout as it is not present in MealLoggerProps */}
+      {activeTab === 'meals' && <MealLogger token={auth.token} onSuccess={() => setActiveTab('dashboard')} />}
+      {activeTab === 'profile' && <Profile token={auth.token} onLogout={handleLogout} />}
     </Layout>
   );
 };
