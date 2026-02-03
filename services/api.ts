@@ -90,7 +90,7 @@ export const api = {
       return handleResponse(res);
     },
     getForDate: async (token: string, date: string): Promise<Meal[]> => {
-      const res = await fetch(`${BASE_URL}/usermeals/usermeal?Date=${date}`, {
+      const res = await fetch(`${BASE_URL}/usermeals/usermeal?date=${date}`, {
         headers: getHeaders(token),
       });
       return handleResponse(res);

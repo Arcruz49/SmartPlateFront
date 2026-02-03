@@ -18,7 +18,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
 
   const fetchData = async () => {
     try {
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = new Date().toLocaleDateString('sv-SE');
       const [userInsights, dailyMeals] = await Promise.all([
         api.insights.get(token).catch(() => api.insights.generate(token)),
         api.meals.getForDate(token, dateStr)
