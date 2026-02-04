@@ -6,14 +6,16 @@ import { api } from '../services/api';
 interface MealLoggerProps {
   token: string;
   onSuccess: () => void;
+  onLogout?: () => void;
 }
 
-const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess }) => {
+const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
   const [mealName, setMealName] = useState('');
   const [description, setDescription] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,7 +38,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess }) => {
     try {
       let imageBytes = '';
       if (imagePreview) {
-        // Remove data:image/...;base64, prefix
         imageBytes = imagePreview.split(',')[1];
       }
 
@@ -46,13 +47,16 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess }) => {
         imageBytes: imageBytes || undefined
       });
       
-      // Reset form
       setMealName('');
       setDescription('');
       setImagePreview(null);
       onSuccess();
-    } catch (err) {
-      setError('Failed to log meal. Please check your connection.');
+    } catch (err: any) {
+      if (err.message === 'Unauthorized' && onLogout) {
+        onLogout();
+        return;
+      }
+      setError('Failed to log meal. Please check your data.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -60,103 +64,105 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="p-6 border-b border-slate-50 bg-slate-50">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Camera className="text-emerald-500" />
-          Log a New Meal
+    <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+      <div className="p-8 border-b border-slate-50 bg-slate-50/50">
+        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+          <div className="bg-emerald-500 text-white p-2 rounded-2xl shadow-lg shadow-emerald-200">
+            <Camera size={24} />
+          </div>
+          Log New Meal
         </h2>
-        <p className="text-sm text-slate-500 mt-1">Snap a photo and tell us what you're eating.</p>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Add details or a photo for AI analysis.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="p-8 md:p-10 space-y-8">
         {error && (
-          <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+          <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 animate-in shake duration-500">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Meal Name</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Meal Name</label>
               <input
                 type="text"
                 required
                 value={mealName}
                 onChange={(e) => setMealName(e.target.value)}
-                placeholder="e.g., Grilled Chicken Salad"
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                placeholder="e.g., Grilled Salmon & Salad"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Details (Optional)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Optional Notes</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add notes like ingredients, portions..."
+                placeholder="Describe portions or ingredients..."
                 rows={4}
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all resize-none"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none"
               />
             </div>
           </div>
 
-          <div className="flex flex-col">
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Photo</label>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-all cursor-pointer relative overflow-hidden group"
+              className="w-full h-[220px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
             >
               {imagePreview ? (
                 <>
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <span className="text-white text-sm font-bold">Change Image</span>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
+                    <span className="text-white text-xs font-black uppercase tracking-widest">Change Image</span>
                   </div>
                   <button 
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setImagePreview(null); }}
-                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-slate-600 hover:text-red-500"
+                    className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-xl text-slate-600 hover:text-red-500 transition-all"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
                 </>
               ) : (
-                <div className="flex flex-col items-center p-6 text-slate-400">
-                  <Upload size={32} className="mb-2" />
-                  <p className="text-sm font-medium">Click to upload image</p>
-                  <p className="text-xs">Supports JPG, PNG</p>
+                <div className="flex flex-col items-center p-8 text-slate-300 group-hover:text-emerald-500 transition-colors">
+                  <Upload size={40} className="mb-4" />
+                  <p className="text-sm font-black uppercase tracking-widest">Click to Upload</p>
+                  <p className="text-[10px] mt-2 font-bold opacity-50">PNG, JPG up to 10MB</p>
                 </div>
               )}
-              <input 
-                type="file" 
-                className="hidden" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                onChange={handleFileChange}
-              />
             </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+            />
           </div>
         </div>
 
-        <div className="pt-4">
+        <div className="pt-6 border-t border-slate-50">
           <button
             type="submit"
             disabled={loading || !mealName}
-            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-5 rounded-[1.5rem] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98] ${
               loading || !mealName 
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200 active:scale-[0.98]'
+                ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
+                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100'
             }`}
           >
             {loading ? (
               <>
-                <Loader2 size={20} className="animate-spin" /> Analyzing Nutrition...
+                <Loader2 size={24} className="animate-spin" /> Analyzing...
               </>
             ) : (
               <>
-                <Check size={20} /> Register Meal
+                <Check size={24} /> Log and Save
               </>
             )}
           </button>

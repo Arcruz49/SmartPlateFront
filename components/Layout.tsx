@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LogOut, Home, User, PlusCircle, PieChart } from 'lucide-react';
+import { LogOut, Home, User, PlusCircle, PieChart, BarChart3 } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -36,6 +36,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, se
             <PlusCircle size={20} /> Log Meal
           </button>
           <button 
+            onClick={() => setActiveTab('metrics')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'metrics' ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <BarChart3 size={20} /> Metrics
+          </button>
+          <button 
             onClick={() => setActiveTab('profile')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'profile' ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
           >
@@ -44,12 +50,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, se
         </nav>
 
         <div className="p-4 border-t border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-slate-500">Welcome, {user?.name}</span>
+          <div className="flex flex-col mb-4">
+            <span className="text-[10px] uppercase font-black text-slate-300 tracking-widest mb-1">User</span>
+            <span className="text-sm font-bold text-slate-700 truncate">Welcome, {user?.name}</span>
           </div>
           <button 
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
           >
             <LogOut size={20} /> Logout
           </button>
@@ -65,13 +72,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, se
 
       {/* Bottom Nav for Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-3 z-50">
-        <button onClick={() => setActiveTab('dashboard')} className={`p-2 ${activeTab === 'dashboard' ? 'text-emerald-600' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('dashboard')} className={`p-2 transition-colors ${activeTab === 'dashboard' ? 'text-emerald-600' : 'text-slate-400'}`}>
           <Home size={24} />
         </button>
-        <button onClick={() => setActiveTab('meals')} className={`p-2 ${activeTab === 'meals' ? 'text-emerald-600' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('meals')} className={`p-2 transition-colors ${activeTab === 'meals' ? 'text-emerald-600' : 'text-slate-400'}`}>
           <PlusCircle size={24} />
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`p-2 ${activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('metrics')} className={`p-2 transition-colors ${activeTab === 'metrics' ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <BarChart3 size={24} />
+        </button>
+        <button onClick={() => setActiveTab('profile')} className={`p-2 transition-colors ${activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-400'}`}>
           <User size={24} />
         </button>
       </nav>

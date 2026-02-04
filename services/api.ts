@@ -1,5 +1,5 @@
 
-import { AuthResponse, UserData, UserInsights, Meal } from '../types';
+import { AuthResponse, UserData, UserInsights, Meal, DailyMetrics } from '../types';
 
 const getServerUrl = () => {
   const hostname = window.location.hostname;
@@ -111,4 +111,13 @@ export const api = {
       if (!res.ok) throw new Error('Failed to delete meal');
     },
   },
+  metrics: {
+    getMealMetrics: async (token: string, range: 'week' | 'month'): Promise<DailyMetrics[]> => {
+      const res = await fetch(`${BASE_URL}/metrics/mealmetrics?MetricsTime=${range}`, {
+        method: 'GET',
+        headers: getHeaders(token),
+      });
+      return handleResponse(res);
+    }
+  }
 };

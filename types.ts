@@ -65,6 +65,16 @@ export interface Meal {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  explanation?: string;
+  advice?: string;
+}
+
+export interface DailyMetrics {
+  meal_date: string;
+  calories_total: number;
+  protein_g_total: number;
+  carbs_g_total: number;
+  fat_g_total: number;
 }
 
 export interface AuthResponse {
