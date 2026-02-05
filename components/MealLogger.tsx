@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2 } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, CalendarClock } from 'lucide-react';
 import { api } from '../services/api';
 
 interface MealLoggerProps {
@@ -10,8 +10,21 @@ interface MealLoggerProps {
 }
 
 const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
+  // Get current local date/time in YYYY-MM-DDTHH:mm format for datetime-local input
+  // This approach is more robust for local time display in 24h format
+  const getNowFormatted = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const [mealName, setMealName] = useState('');
   const [description, setDescription] = useState('');
+  const [mealDateTime, setMealDateTime] = useState(getNowFormatted());
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,11 +57,13 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
       await api.meals.log(token, {
         mealName,
         description,
-        imageBytes: imageBytes || undefined
+        imageBytes: imageBytes || undefined,
+        mealDate: mealDateTime 
       });
       
       setMealName('');
       setDescription('');
+      setMealDateTime(getNowFormatted());
       setImagePreview(null);
       onSuccess();
     } catch (err: any) {
@@ -86,33 +101,51 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           <div className="space-y-6">
             <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Meal Name</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  maxLength={255}
+                  value={mealName}
+                  onChange={(e) => setMealName(e.target.value)}
+                  placeholder="e.g., Grilled Salmon & Salad"
+                  className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold pr-16"
+                />
+                <span className={`absolute bottom-4 right-4 text-[9px] font-bold ${mealName.length >= 255 ? 'text-red-500' : 'text-slate-300'}`}>
+                  {mealName.length}/255
+                </span>
+              </div>
+            </div>
+
+            <div className="relative">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <CalendarClock size={12} className="text-slate-400" /> Date & Time (24h)
+              </label>
               <input
-                type="text"
-                required
-                maxLength={255}
-                value={mealName}
-                onChange={(e) => setMealName(e.target.value)}
-                placeholder="e.g., Grilled Salmon & Salad"
-                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold pr-16"
+                type="datetime-local"
+                max={getNowFormatted()}
+                step="60"
+                value={mealDateTime}
+                onChange={(e) => setMealDateTime(e.target.value)}
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold text-sm appearance-none"
               />
-              <span className={`absolute bottom-4 right-4 text-[9px] font-bold ${mealName.length >= 255 ? 'text-red-500' : 'text-slate-300'}`}>
-                {mealName.length}/255
-              </span>
             </div>
 
             <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Optional Notes</label>
-              <textarea
-                value={description}
-                maxLength={2000}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe portions or ingredients..."
-                rows={4}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
-              />
-              <span className={`absolute bottom-3 right-4 text-[9px] font-bold ${description.length >= 2000 ? 'text-red-500' : 'text-slate-300'}`}>
-                {description.length}/2000
-              </span>
+              <div className="relative">
+                <textarea
+                  value={description}
+                  maxLength={2000}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe portions or ingredients..."
+                  rows={4}
+                  className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
+                />
+                <span className={`absolute bottom-3 right-4 text-[9px] font-bold ${description.length >= 2000 ? 'text-red-500' : 'text-slate-300'}`}>
+                  {description.length}/2000
+                </span>
+              </div>
             </div>
           </div>
 
@@ -120,7 +153,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-[220px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
+              className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
             >
               {imagePreview ? (
                 <>

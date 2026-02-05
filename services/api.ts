@@ -81,7 +81,7 @@ export const api = {
     },
   },
   meals: {
-    log: async (token: string, data: { mealName: string, description: string, imageBytes?: string }): Promise<Meal> => {
+    log: async (token: string, data: { mealName: string, description: string, imageBytes?: string, mealDate?: string }): Promise<Meal> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal`, {
         method: 'POST',
         headers: getHeaders(token),
