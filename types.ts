@@ -45,6 +45,8 @@ export interface UserData {
   sleepQuality: number; // 1-10
   stressLevel: number; // 1-10
   routineConsistency: number; // 1-10
+  workoutDetails?: string;
+  dailyActivityDetails?: string;
 }
 
 export interface UserInsights {

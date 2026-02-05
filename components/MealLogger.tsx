@@ -84,27 +84,35 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            <div>
+            <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Meal Name</label>
               <input
                 type="text"
                 required
+                maxLength={255}
                 value={mealName}
                 onChange={(e) => setMealName(e.target.value)}
                 placeholder="e.g., Grilled Salmon & Salad"
-                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold pr-16"
               />
+              <span className={`absolute bottom-4 right-4 text-[9px] font-bold ${mealName.length >= 255 ? 'text-red-500' : 'text-slate-300'}`}>
+                {mealName.length}/255
+              </span>
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Optional Notes</label>
               <textarea
                 value={description}
+                maxLength={2000}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe portions or ingredients..."
                 rows={4}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
               />
+              <span className={`absolute bottom-3 right-4 text-[9px] font-bold ${description.length >= 2000 ? 'text-red-500' : 'text-slate-300'}`}>
+                {description.length}/2000
+              </span>
             </div>
           </div>
 

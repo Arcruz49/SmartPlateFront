@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { UserData, BiologicalSex, TrainingType, TrainingIntensity, DailyActivityLevel, Goal } from '../types';
-import { Save, User as UserIcon, Loader2, AlertCircle, Target, Sparkles, LogOut } from 'lucide-react';
+import { Save, User as UserIcon, Loader2, AlertCircle, Target, Sparkles, LogOut, Dumbbell, CalendarDays } from 'lucide-react';
 
 interface ProfileProps {
   token: string;
@@ -29,7 +29,9 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
     goal: Goal.Maintenance,
     sleepQuality: 3,
     stressLevel: 3,
-    routineConsistency: 3
+    routineConsistency: 3,
+    workoutDetails: '',
+    dailyActivityDetails: ''
   });
 
   useEffect(() => {
@@ -37,7 +39,11 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
       try {
         const data = await api.user.getData(token);
         if (data && data.age) {
-          setFormData(data);
+          setFormData({
+            ...data,
+            workoutDetails: data.workoutDetails || '',
+            dailyActivityDetails: data.dailyActivityDetails || ''
+          });
         }
       } catch (err: any) {
         if (err.message === 'Unauthorized' && onLogout) onLogout();
@@ -89,7 +95,7 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -113,7 +119,7 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
           </div>
           My Profile
         </h2>
-        <p className="text-slate-500 font-medium ml-1">Update your 12 biometric and lifestyle factors.</p>
+        <p className="text-slate-500 font-medium ml-1">Update your biometrics and lifestyle details for AI analysis.</p>
       </header>
 
       {successMsg && (
@@ -147,11 +153,11 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8 md:p-12 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Section 1: Body */}
           <div className="space-y-8">
             <h3 className="text-xs font-black text-slate-300 uppercase tracking-[0.25em] pb-3 border-b border-slate-50">Biometrics</h3>
-            <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-5">
               <FormGroup label="Age" name="age" type="number" value={formData.age} onChange={handleChange} />
               <FormGroup label="Weight (Kg)" name="weightKg" type="number" value={formData.weightKg} onChange={handleChange} />
               <FormGroup label="Height (Cm)" name="heightCm" type="number" value={formData.heightCm} onChange={handleChange} />
@@ -163,60 +169,95 @@ const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Primary Goal</label>
+              <select name="goal" value={formData.goal} onChange={handleChange} className="form-input font-bold text-emerald-600">
+                <option value={Goal.Maintenance}>Maintain Weight</option>
+                <option value={Goal.MuscleGain}>Gain Muscle</option>
+                <option value={Goal.WeightLoss}>Weight Loss</option>
+                <option value={Goal.Performance}>Performance</option>
+              </select>
+            </div>
           </div>
 
-          {/* Section 2: Goals */}
+          {/* Section 2: Physical Activity */}
           <div className="space-y-8">
             <h3 className="text-xs font-black text-slate-300 uppercase tracking-[0.25em] pb-3 border-b border-slate-50">Physical Activity</h3>
-            <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-5">
               <FormGroup label="Workouts/Week" name="workoutsPerWeek" type="number" value={formData.workoutsPerWeek} onChange={handleChange} />
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Training Type</label>
                 <select name="trainingType" value={formData.trainingType} onChange={handleChange} className="form-input">
-                  <option value={TrainingType.Strength}>Strength (Weightlifting)</option>
+                  <option value={TrainingType.Strength}>Strength</option>
                   <option value={TrainingType.Cardio}>Cardio</option>
                   <option value={TrainingType.Sports}>Sports</option>
                   <option value={TrainingType.Mixed}>Mixed</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Intensity</label>
-                <select name="trainingIntensity" value={formData.trainingIntensity} onChange={handleChange} className="form-input">
-                  <option value={TrainingIntensity.Low}>Low</option>
-                  <option value={TrainingIntensity.Moderate}>Moderate</option>
-                  <option value={TrainingIntensity.High}>High</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Primary Goal</label>
-                <select name="goal" value={formData.goal} onChange={handleChange} className="form-input font-bold text-emerald-600">
-                  <option value={Goal.Maintenance}>Maintain Weight</option>
-                  <option value={Goal.MuscleGain}>Gain Muscle</option>
-                  <option value={Goal.WeightLoss}>Weight Loss</option>
-                  <option value={Goal.Performance}>Performance</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Daily Activity Level</label>
-                <select name="dailyActivityLevel" value={formData.dailyActivityLevel} onChange={handleChange} className="form-input">
-                  <option value={DailyActivityLevel.Sedentary}>Sedentary</option>
-                  <option value={DailyActivityLevel.Light}>Light</option>
-                  <option value={DailyActivityLevel.Moderate}>Moderate</option>
-                  <option value={DailyActivityLevel.Active}>Active</option>
-                  <option value={DailyActivityLevel.VeryActive}>Very Active</option>
-                </select>
+            </div>
+            
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">Daily Activity Level</label>
+              <select name="dailyActivityLevel" value={formData.dailyActivityLevel} onChange={handleChange} className="form-input">
+                <option value={DailyActivityLevel.Sedentary}>Sedentary</option>
+                <option value={DailyActivityLevel.Light}>Light</option>
+                <option value={DailyActivityLevel.Moderate}>Moderate</option>
+                <option value={DailyActivityLevel.Active}>Active</option>
+                <option value={DailyActivityLevel.VeryActive}>Very Active</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                <Dumbbell size={14} className="text-slate-300" /> Workout Details
+              </label>
+              <div className="relative">
+                <textarea 
+                  name="workoutDetails"
+                  maxLength={500}
+                  value={formData.workoutDetails}
+                  onChange={handleChange}
+                  placeholder="Describe your training routine (e.g., Push/Pull/Legs, Heavy weights, 60min sessions...)"
+                  className="form-input min-h-[100px] resize-none text-sm font-medium pr-10"
+                />
+                <span className={`absolute bottom-3 right-3 text-[9px] font-bold ${(formData.workoutDetails || '').length >= 500 ? 'text-red-500' : 'text-slate-300'}`}>
+                  {(formData.workoutDetails || '').length}/500
+                </span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Section 3: Lifestyle */}
-          <div className="space-y-8">
-            <h3 className="text-xs font-black text-slate-300 uppercase tracking-[0.25em] pb-3 border-b border-slate-50">Quality of Life (1-5)</h3>
-            <div className="space-y-10">
-              <RangeGroup label="Sleep Quality" name="sleepQuality" value={formData.sleepQuality} onChange={handleChange} />
-              <RangeGroup label="Stress Level" name="stressLevel" value={formData.stressLevel} onChange={handleChange} />
-              <RangeGroup label="Routine Consistency" name="routineConsistency" value={formData.routineConsistency} onChange={handleChange} />
-            </div>
+        {/* Section 3: Lifestyle & Routine */}
+        <div className="space-y-8">
+          <h3 className="text-xs font-black text-slate-300 uppercase tracking-[0.25em] pb-3 border-b border-slate-50">Lifestyle & Routine</h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+             <div className="space-y-8">
+                <RangeGroup label="Sleep Quality" name="sleepQuality" value={formData.sleepQuality} onChange={handleChange} />
+                <RangeGroup label="Stress Level" name="stressLevel" value={formData.stressLevel} onChange={handleChange} />
+                <RangeGroup label="Routine Consistency" name="routineConsistency" value={formData.routineConsistency} onChange={handleChange} />
+             </div>
+
+             <div className="space-y-4">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  <CalendarDays size={14} className="text-slate-300" /> Daily Activity Details
+                </label>
+                <div className="relative">
+                  <textarea 
+                    name="dailyActivityDetails"
+                    maxLength={500}
+                    value={formData.dailyActivityDetails}
+                    onChange={handleChange}
+                    placeholder="Describe your daily routine (e.g., Office job, walk 5km to work, stand most of the day...)"
+                    className="form-input min-h-[150px] lg:min-h-[280px] resize-none text-sm font-medium pr-10"
+                  />
+                  <span className={`absolute bottom-3 right-3 text-[9px] font-bold ${(formData.dailyActivityDetails || '').length >= 500 ? 'text-red-500' : 'text-slate-300'}`}>
+                    {(formData.dailyActivityDetails || '').length}/500
+                  </span>
+                </div>
+             </div>
           </div>
         </div>
 
