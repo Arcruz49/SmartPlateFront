@@ -59,27 +59,33 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     setLoading(true);
     setError(null);
     try {
-      let imageBytes = '';
-      if (imagePreview && activeTab === 'ai') {
-        imageBytes = imagePreview.split(',')[1];
-      }
+      if (activeTab === 'ai') {
+        let imageBytes = '';
+        if (imagePreview) {
+          imageBytes = imagePreview.split(',')[1];
+        }
 
-      // Step 1: Create the meal
-      const meal = await api.meals.log(token, {
-        mealName,
-        description,
-        imageBytes: imageBytes || undefined,
-        mealDate: mealDateTime 
-      });
-
-      // Step 2: If manual, override nutritional data
-      if (activeTab === 'manual') {
-        await api.meals.updateMealMacros(token, {
-          mealId: meal.mealId,
-          targetCalories: manualMacros.calories,
-          proteinTargetG: manualMacros.protein,
-          carbsTargetG: manualMacros.carbs,
-          fatTargetG: manualMacros.fat
+        // AI Entry: Single request to usermeal
+        await api.meals.log(token, {
+          mealName,
+          description,
+          imageBytes: imageBytes || undefined,
+          mealDate: mealDateTime 
+        });
+      } else {
+        // Manual Entry: Single request to usermeal-rules
+        // Split ISO string YYYY-MM-DDTHH:mm into date and time
+        const [datePart, timePart] = mealDateTime.split('T');
+        
+        await api.meals.logManual(token, {
+          mealName,
+          mealDescription: description,
+          mealDate: datePart,
+          mealTime: `${timePart}:00`,
+          calories: Math.round(manualMacros.calories),
+          proteinG: manualMacros.protein,
+          carbsG: manualMacros.carbs,
+          fatG: manualMacros.fat
         });
       }
       
@@ -188,7 +194,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   maxLength={2000}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe portions or ingredients..."
-                  rows={activeTab === 'manual' ? 4 : 4}
+                  rows={4}
                   className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
                 />
                 <span className={`absolute bottom-3 right-4 text-[9px] font-bold ${description.length >= 2000 ? 'text-red-500' : 'text-slate-300'}`}>
@@ -245,7 +251,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     icon={<Flame size={16} />} 
                     value={manualMacros.calories} 
                     unit="kcal"
-                    onChange={(val) => setManualMacros({...manualMacros, calories: val})} 
+                    onChange={(val: number) => setManualMacros({...manualMacros, calories: val})} 
                     color="text-orange-500"
                     bg="bg-orange-50"
                   />
@@ -254,7 +260,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     icon={<Target size={16} />} 
                     value={manualMacros.protein} 
                     unit="g"
-                    onChange={(val) => setManualMacros({...manualMacros, protein: val})} 
+                    onChange={(val: number) => setManualMacros({...manualMacros, protein: val})} 
                     color="text-blue-500"
                     bg="bg-blue-50"
                   />
@@ -263,7 +269,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     icon={<Zap size={16} />} 
                     value={manualMacros.carbs} 
                     unit="g"
-                    onChange={(val) => setManualMacros({...manualMacros, carbs: val})} 
+                    onChange={(val: number) => setManualMacros({...manualMacros, carbs: val})} 
                     color="text-purple-500"
                     bg="bg-purple-50"
                   />
@@ -272,14 +278,14 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     icon={<Coffee size={16} />} 
                     value={manualMacros.fat} 
                     unit="g"
-                    onChange={(val) => setManualMacros({...manualMacros, fat: val})} 
+                    onChange={(val: number) => setManualMacros({...manualMacros, fat: val})} 
                     color="text-amber-600"
                     bg="bg-amber-50"
                   />
                 </div>
                 <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 mt-4">
                   <p className="text-[10px] font-bold text-emerald-700 leading-relaxed italic">
-                    Note: Manual values will override AI estimation for this meal.
+                    Note: Manual values will be stored directly via the rules endpoint.
                   </p>
                 </div>
               </div>

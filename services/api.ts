@@ -97,7 +97,16 @@ export const api = {
       });
       return handleResponse(res);
     },
-    updateMealMacros: async (token: string, data: { mealId: string, targetCalories: number, proteinTargetG: number, carbsTargetG: number, fatTargetG: number }): Promise<any> => {
+    logManual: async (token: string, data: { 
+      mealName: string, 
+      mealDescription: string, 
+      mealDate: string, 
+      mealTime: string, 
+      calories: number, 
+      proteinG: number, 
+      carbsG: number, 
+      fatG: number 
+    }): Promise<any> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal-rules`, {
         method: 'POST',
         headers: getHeaders(token),
