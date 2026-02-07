@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Zap, Target, Coffee, Flame, X, Trash2, Clock, Calendar, ChevronLeft, ChevronRight, Loader2, Info, Sparkles, MessageSquareQuote } from 'lucide-react';
+import { Zap, Target, Coffee, Flame, X, Trash2, Clock, Calendar, ChevronLeft, ChevronRight, Loader2, Info, Sparkles, MessageSquareQuote, Edit3, Save, Check } from 'lucide-react';
 import { api } from '../services/api';
 import { UserInsights, Meal } from '../types';
 
@@ -19,6 +19,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
   const [loadingMealDetail, setLoadingMealDetail] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Manual Target Editing State
+  const [isEditingTargets, setIsEditingTargets] = useState(false);
+  const [savingTargets, setSavingTargets] = useState(false);
+  const [targetForm, setTargetForm] = useState({
+    targetCalories: 2000,
+    proteingTargetG: 150,
+    carbsTargetG: 200,
+    fatTargetG: 60
+  });
 
   const formatDateForApi = (date: Date) => date.toLocaleDateString('sv-SE');
 
@@ -54,6 +64,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
 
       if (userInsights) {
         setInsights(userInsights);
+        setTargetForm({
+          targetCalories: userInsights.target_calories,
+          proteingTargetG: userInsights.protein_target_g,
+          carbsTargetG: userInsights.carbs_target_g,
+          fat_target_g: userInsights.fat_target_g, // types.ts might need alignment but we use the API fields
+        } as any);
+        
+        // Ensure naming alignment for the form based on user request fields
+        setTargetForm({
+          targetCalories: userInsights.target_calories,
+          proteingTargetG: userInsights.protein_target_g,
+          carbsTargetG: userInsights.carbs_target_g,
+          fatTargetG: userInsights.fat_target_g
+        });
+
         const dailyMeals = await api.meals.getForDate(token, dateStr);
         setMeals(dailyMeals);
       }
@@ -68,6 +93,23 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
   useEffect(() => {
     fetchData();
   }, [token, currentDate]);
+
+  const handleUpdateTargets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingTargets(true);
+    try {
+      const updated = await api.insights.updateTargets(token, targetForm);
+      setInsights(updated);
+      setIsEditingTargets(false);
+      // Refresh calculations
+      await fetchData();
+    } catch (err) {
+      alert("Failed to update goals.");
+      console.error(err);
+    } finally {
+      setSavingTargets(false);
+    }
+  };
 
   const handleMealClick = async (meal: Meal) => {
     setLoadingMealDetail(true);
@@ -159,7 +201,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
           </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-[1.5rem] font-black shadow-lg shadow-slate-200/50 border border-slate-50">
+        <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-[1.5rem] font-black shadow-lg shadow-slate-200/50 border border-slate-50 relative group">
           <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
             <Target size={20} />
           </div>
@@ -167,6 +209,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
             <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-none mb-1">Daily Target</p>
             <p className="text-lg text-slate-800">{insights?.target_calories.toLocaleString('en-US')} <span className="text-sm font-bold text-slate-400">kcal</span></p>
           </div>
+          <button 
+            onClick={() => setIsEditingTargets(true)}
+            className="absolute -top-2 -right-2 p-2 bg-emerald-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-90 z-20"
+          >
+            <Edit3 size={14} />
+          </button>
         </div>
       </header>
 
@@ -302,6 +350,101 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
           </div>
         )}
       </section>
+
+      {/* Target Edit Modal */}
+      {isEditingTargets && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-500">
+            <div className="bg-emerald-600 p-8 flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white text-2xl font-black">Manual Goals</h3>
+                <button onClick={() => setIsEditingTargets(false)} className="text-white/60 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              <p className="text-emerald-100 text-xs font-medium">Override nutritional targets manually (no AI).</p>
+            </div>
+
+            <form onSubmit={handleUpdateTargets} className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Flame size={14} className="text-orange-500" /> Daily Calories (kcal)
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="500"
+                    max="10000"
+                    value={targetForm.targetCalories}
+                    onChange={e => setTargetForm({...targetForm, targetCalories: parseInt(e.target.value)})}
+                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 focus:bg-white outline-none font-bold transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Target size={14} className="text-blue-500" /> Protein (g)
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    value={targetForm.proteingTargetG}
+                    onChange={e => setTargetForm({...targetForm, proteingTargetG: parseInt(e.target.value)})}
+                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 focus:bg-white outline-none font-bold transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Zap size={14} className="text-purple-500" /> Carbs (g)
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    value={targetForm.carbsTargetG}
+                    onChange={e => setTargetForm({...targetForm, carbsTargetG: parseInt(e.target.value)})}
+                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 focus:bg-white outline-none font-bold transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Coffee size={14} className="text-amber-600" /> Fat (g)
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    value={targetForm.fatTargetG}
+                    onChange={e => setTargetForm({...targetForm, fatTargetG: parseInt(e.target.value)})}
+                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 focus:bg-white outline-none font-bold transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsEditingTargets(false)}
+                  className="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={savingTargets}
+                  className="flex-[2] py-4 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                >
+                  {savingTargets ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Save Goals</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Meal Detail Modal */}
       {selectedMeal && (

@@ -79,6 +79,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    updateTargets: async (token: string, data: { targetCalories: number, proteingTargetG: number, carbsTargetG: number, fatTargetG: number }): Promise<UserInsights> => {
+      const res = await fetch(`${BASE_URL}/userinsights/userinsights-rules`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
   },
   meals: {
     log: async (token: string, data: { mealName: string, description: string, imageBytes?: string, mealDate?: string }): Promise<Meal> => {
