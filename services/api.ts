@@ -1,5 +1,5 @@
 
-import { AuthResponse, UserData, UserInsights, Meal, DailyMetrics } from '../types';
+import { AuthResponse, UserData, UserInsights, Meal, DailyMetrics, BodyMetrics } from '../types';
 
 const getServerUrl = () => {
   const hostname = window.location.hostname;
@@ -114,6 +114,13 @@ export const api = {
   metrics: {
     getMealMetrics: async (token: string, range: 'week' | 'month'): Promise<DailyMetrics[]> => {
       const res = await fetch(`${BASE_URL}/metrics/mealmetrics?MetricsTime=${range}`, {
+        method: 'GET',
+        headers: getHeaders(token),
+      });
+      return handleResponse(res);
+    },
+    getBodyMetrics: async (token: string): Promise<BodyMetrics[]> => {
+      const res = await fetch(`${BASE_URL}/metrics/userbodymetrics`, {
         method: 'GET',
         headers: getHeaders(token),
       });

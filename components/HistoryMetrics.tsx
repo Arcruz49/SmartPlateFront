@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, Legend, Cell 
+  BarChart, Bar, Legend, LineChart, Line
 } from 'recharts';
-import { Calendar, TrendingUp, BarChart3, Loader2, Zap, Flame, Target, Info } from 'lucide-react';
+import { Calendar, TrendingUp, BarChart3, Loader2, Zap, Flame, Target, Info, Scale } from 'lucide-react';
 import { api } from '../services/api';
-import { DailyMetrics } from '../types';
+import { DailyMetrics, BodyMetrics } from '../types';
 
 interface HistoryMetricsProps {
   token: string;
@@ -14,24 +14,33 @@ interface HistoryMetricsProps {
 
 const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
   const [metrics, setMetrics] = useState<DailyMetrics[]>([]);
+  const [bodyMetrics, setBodyMetrics] = useState<BodyMetrics[]>([]);
   const [range, setRange] = useState<'week' | 'month'>('week');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMetrics = async () => {
+    const fetchAllMetrics = async () => {
       setLoading(true);
       try {
-        const data = await api.metrics.getMealMetrics(token, range);
-        // Sort by date just in case
-        const sorted = data.sort((a, b) => new Date(a.meal_date).getTime() - new Date(b.meal_date).getTime());
-        setMetrics(sorted);
+        const [mealData, bodyData] = await Promise.all([
+          api.metrics.getMealMetrics(token, range),
+          api.metrics.getBodyMetrics(token)
+        ]);
+        
+        // Sort meal metrics by date
+        const sortedMeal = mealData.sort((a, b) => new Date(a.meal_date).getTime() - new Date(b.meal_date).getTime());
+        setMetrics(sortedMeal);
+
+        // Sort body metrics by date
+        const sortedBody = bodyData.sort((a, b) => new Date(a.metricDate).getTime() - new Date(b.metricDate).getTime());
+        setBodyMetrics(sortedBody);
       } catch (err) {
         console.error("Failed to fetch metrics", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchMetrics();
+    fetchAllMetrics();
   }, [token, range]);
 
   const formatDateLabel = (dateStr: string) => {
@@ -46,10 +55,15 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
     fat: Math.round(metrics.reduce((acc, m) => acc + m.fat_g_total, 0) / metrics.length),
   } : null;
 
+  const currentWeight = bodyMetrics.length > 0 ? bodyMetrics[bodyMetrics.length - 1].weightKg : null;
+  const weightDiff = bodyMetrics.length > 1 ? (bodyMetrics[bodyMetrics.length - 1].weightKg - bodyMetrics[0].weightKg).toFixed(1) : '0';
+
   if (loading && metrics.length === 0) return (
     <div className="flex flex-col items-center justify-center h-[50vh] text-slate-500">
-      <Loader2 size={40} className="animate-spin text-emerald-500 mb-4" />
-      <p className="font-medium">Synthesizing history data...</p>
+      <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+        <Loader2 size={32} className="text-emerald-500 animate-spin" />
+      </div>
+      <p className="text-lg font-bold text-slate-400">Synthesizing history data...</p>
     </div>
   );
 
@@ -82,20 +96,21 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
         </div>
       </header>
 
-      {metrics.length === 0 ? (
+      {metrics.length === 0 && bodyMetrics.length === 0 ? (
         <div className="bg-white p-20 rounded-[3rem] border-4 border-dashed border-slate-100 text-center text-slate-300">
           <TrendingUp size={64} className="mx-auto mb-6 opacity-20" />
-          <p className="text-xl font-black mb-2 text-slate-400">Insufficent Data</p>
-          <p className="text-sm font-medium">Log meals for a few more days to see trends.</p>
+          <p className="text-xl font-black mb-2 text-slate-400">Insufficient Data</p>
+          <p className="text-sm font-medium">Log meals and profile info for a few more days to see trends.</p>
         </div>
       ) : (
         <>
           {/* Average Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetricSummaryCard label="Avg. Calories" value={`${averages?.calories}`} unit="kcal" icon={<Flame className="text-orange-500" />} />
-            <MetricSummaryCard label="Avg. Protein" value={`${averages?.protein}`} unit="g" icon={<Target className="text-blue-500" />} />
-            <MetricSummaryCard label="Avg. Carbs" value={`${averages?.carbs}`} unit="g" icon={<Zap className="text-purple-500" />} />
-            <MetricSummaryCard label="Avg. Fat" value={`${averages?.fat}`} unit="g" icon={<Info className="text-emerald-500" />} />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <MetricSummaryCard label="Avg. Calories" value={`${averages?.calories || 0}`} unit="kcal" icon={<Flame className="text-orange-500" />} />
+            <MetricSummaryCard label="Avg. Protein" value={`${averages?.protein || 0}`} unit="g" icon={<Target className="text-blue-500" />} />
+            <MetricSummaryCard label="Current Weight" value={`${currentWeight || '---'}`} unit="kg" icon={<Scale className="text-emerald-600" />} />
+            <MetricSummaryCard label="Weight Diff." value={`${weightDiff}`} unit="kg" icon={<TrendingUp className={parseFloat(weightDiff) > 0 ? "text-red-500" : "text-emerald-500"} />} />
+            <MetricSummaryCard label="Avg. Carbs" value={`${averages?.carbs || 0}`} unit="g" icon={<Zap className="text-purple-500" />} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -138,8 +153,50 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
               </div>
             </div>
 
-            {/* Macros Stacked Chart */}
+            {/* Weight Variation Trend */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50">
+              <h3 className="text-lg font-black text-slate-800 mb-8 flex items-center gap-2">
+                <Scale size={18} className="text-emerald-600" />
+                Weight Variation Trend
+              </h3>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={bodyMetrics}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="metricDate" 
+                      tickFormatter={formatDateLabel} 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      domain={['auto', 'auto']}
+                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    />
+                    <Tooltip 
+                      contentStyle={{borderRadius: '1.25rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'}}
+                      labelFormatter={formatDateLabel}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="weightKg" 
+                      name="Weight (kg)" 
+                      stroke="#059669" 
+                      strokeWidth={3} 
+                      dot={{ r: 6, fill: '#059669', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 8, strokeWidth: 0 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Macros Stacked Chart */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 lg:col-span-2">
               <h3 className="text-lg font-black text-slate-800 mb-8 flex items-center gap-2">
                 <Zap size={18} className="text-purple-500" />
                 Macronutrient Balance
@@ -181,7 +238,7 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
 };
 
 const MetricSummaryCard = ({ label, value, unit, icon }: { label: string, value: string, unit: string, icon: React.ReactNode }) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
     <div className="p-3 bg-slate-50 rounded-2xl shrink-0">
       {icon}
     </div>

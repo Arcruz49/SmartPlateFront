@@ -11,7 +11,6 @@ interface MealLoggerProps {
 
 const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
   // Get current local date/time in YYYY-MM-DDTHH:mm format for datetime-local input
-  // This approach is more robust for local time display in 24h format
   const getNowFormatted = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -121,14 +120,20 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <CalendarClock size={12} className="text-slate-400" /> Date & Time (24h)
               </label>
-              <input
-                type="datetime-local"
-                max={getNowFormatted()}
-                step="60"
-                value={mealDateTime}
-                onChange={(e) => setMealDateTime(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold text-sm appearance-none"
-              />
+              <div className="relative group">
+                <input
+                  type="datetime-local"
+                  lang="pt-BR"
+                  max={getNowFormatted()}
+                  value={mealDateTime}
+                  onChange={(e) => setMealDateTime(e.target.value)}
+                  className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold text-sm cursor-pointer"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-emerald-500 transition-colors bg-white pl-2">
+                  <CalendarClock size={18} />
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-300 mt-2 font-bold ml-1 uppercase tracking-tighter">Choose exactly when you had this meal</p>
             </div>
 
             <div className="relative">

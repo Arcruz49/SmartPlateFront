@@ -79,6 +79,11 @@ export interface DailyMetrics {
   fat_g_total: number;
 }
 
+export interface BodyMetrics {
+  weightKg: number;
+  metricDate: string;
+}
+
 export interface AuthResponse {
   name: string;
   email: string;
