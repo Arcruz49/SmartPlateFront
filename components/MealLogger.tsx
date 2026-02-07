@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2, CalendarClock } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, CalendarClock, Sparkles, Settings2, Flame, Target, Zap, Coffee } from 'lucide-react';
 import { api } from '../services/api';
 
 interface MealLoggerProps {
@@ -10,7 +10,9 @@ interface MealLoggerProps {
 }
 
 const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
-  // Get current local date/time in YYYY-MM-DDTHH:mm format for datetime-local input
+  const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
+  
+  // Get current local date/time in YYYY-MM-DDTHH:mm format
   const getNowFormatted = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -25,6 +27,15 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   const [description, setDescription] = useState('');
   const [mealDateTime, setMealDateTime] = useState(getNowFormatted());
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Manual macro state
+  const [manualMacros, setManualMacros] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -49,21 +60,35 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     setError(null);
     try {
       let imageBytes = '';
-      if (imagePreview) {
+      if (imagePreview && activeTab === 'ai') {
         imageBytes = imagePreview.split(',')[1];
       }
 
-      await api.meals.log(token, {
+      // Step 1: Create the meal
+      const meal = await api.meals.log(token, {
         mealName,
         description,
         imageBytes: imageBytes || undefined,
         mealDate: mealDateTime 
       });
+
+      // Step 2: If manual, override nutritional data
+      if (activeTab === 'manual') {
+        await api.meals.updateMealMacros(token, {
+          mealId: meal.mealId,
+          targetCalories: manualMacros.calories,
+          proteinTargetG: manualMacros.protein,
+          carbsTargetG: manualMacros.carbs,
+          fatTargetG: manualMacros.fat
+        });
+      }
       
+      // Success Cleanup
       setMealName('');
       setDescription('');
       setMealDateTime(getNowFormatted());
       setImagePreview(null);
+      setManualMacros({ calories: 0, protein: 0, carbs: 0, fat: 0 });
       onSuccess();
     } catch (err: any) {
       if (err.message === 'Unauthorized' && onLogout) {
@@ -79,14 +104,34 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-      <div className="p-8 border-b border-slate-50 bg-slate-50/50">
-        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-          <div className="bg-emerald-500 text-white p-2 rounded-2xl shadow-lg shadow-emerald-200">
-            <Camera size={24} />
-          </div>
-          Log New Meal
-        </h2>
-        <p className="text-sm text-slate-500 mt-2 font-medium">Add details or a photo for AI analysis.</p>
+      <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+            <div className="bg-emerald-500 text-white p-2 rounded-2xl shadow-lg shadow-emerald-200">
+              <Camera size={24} />
+            </div>
+            Log New Meal
+          </h2>
+          <p className="text-sm text-slate-500 mt-2 font-medium">Choose how you want to record your nutrition.</p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex p-1 bg-slate-100 rounded-2xl w-full md:w-fit self-start md:self-center">
+          <button 
+            type="button"
+            onClick={() => setActiveTab('ai')}
+            className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Sparkles size={14} /> AI Analysis
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('manual')}
+            className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${activeTab === 'manual' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Settings2 size={14} /> Manual Entry
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 md:p-10 space-y-8">
@@ -133,7 +178,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   <CalendarClock size={18} />
                 </div>
               </div>
-              <p className="text-[9px] text-slate-300 mt-2 font-bold ml-1 uppercase tracking-tighter">Choose exactly when you had this meal</p>
             </div>
 
             <div className="relative">
@@ -144,7 +188,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   maxLength={2000}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe portions or ingredients..."
-                  rows={4}
+                  rows={activeTab === 'manual' ? 4 : 4}
                   className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
                 />
                 <span className={`absolute bottom-3 right-4 text-[9px] font-bold ${description.length >= 2000 ? 'text-red-500' : 'text-slate-300'}`}>
@@ -155,40 +199,91 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
-            >
-              {imagePreview ? (
-                <>
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
-                    <span className="text-white text-xs font-black uppercase tracking-widest">Change Image</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setImagePreview(null); }}
-                    className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-xl text-slate-600 hover:text-red-500 transition-all"
-                  >
-                    <X size={18} />
-                  </button>
-                </>
-              ) : (
-                <div className="flex flex-col items-center p-8 text-slate-300 group-hover:text-emerald-500 transition-colors">
-                  <Upload size={40} className="mb-4" />
-                  <p className="text-sm font-black uppercase tracking-widest">Click to Upload</p>
-                  <p className="text-[10px] mt-2 font-bold opacity-50">PNG, JPG up to 10MB</p>
+            {activeTab === 'ai' ? (
+              <>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
+                >
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
+                        <span className="text-white text-xs font-black uppercase tracking-widest">Change Image</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setImagePreview(null); }}
+                        className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-xl text-slate-600 hover:text-red-500 transition-all"
+                      >
+                        <X size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center p-8 text-slate-300 group-hover:text-emerald-500 transition-colors">
+                      <Upload size={40} className="mb-4" />
+                      <p className="text-sm font-black uppercase tracking-widest">Click to Upload</p>
+                      <p className="text-[10px] mt-2 font-bold opacity-50">PNG, JPG up to 10MB</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <input 
-              type="file" 
-              className="hidden" 
-              accept="image/*" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-            />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                />
+              </>
+            ) : (
+              <div className="space-y-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nutritional Values</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <MacroInput 
+                    label="Calories" 
+                    icon={<Flame size={16} />} 
+                    value={manualMacros.calories} 
+                    unit="kcal"
+                    onChange={(val) => setManualMacros({...manualMacros, calories: val})} 
+                    color="text-orange-500"
+                    bg="bg-orange-50"
+                  />
+                  <MacroInput 
+                    label="Protein" 
+                    icon={<Target size={16} />} 
+                    value={manualMacros.protein} 
+                    unit="g"
+                    onChange={(val) => setManualMacros({...manualMacros, protein: val})} 
+                    color="text-blue-500"
+                    bg="bg-blue-50"
+                  />
+                  <MacroInput 
+                    label="Carbs" 
+                    icon={<Zap size={16} />} 
+                    value={manualMacros.carbs} 
+                    unit="g"
+                    onChange={(val) => setManualMacros({...manualMacros, carbs: val})} 
+                    color="text-purple-500"
+                    bg="bg-purple-50"
+                  />
+                  <MacroInput 
+                    label="Fats" 
+                    icon={<Coffee size={16} />} 
+                    value={manualMacros.fat} 
+                    unit="g"
+                    onChange={(val) => setManualMacros({...manualMacros, fat: val})} 
+                    color="text-amber-600"
+                    bg="bg-amber-50"
+                  />
+                </div>
+                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 mt-4">
+                  <p className="text-[10px] font-bold text-emerald-700 leading-relaxed italic">
+                    Note: Manual values will override AI estimation for this meal.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -204,11 +299,11 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           >
             {loading ? (
               <>
-                <Loader2 size={24} className="animate-spin" /> Analyzing...
+                <Loader2 size={24} className="animate-spin" /> {activeTab === 'ai' ? 'Analyzing...' : 'Saving...'}
               </>
             ) : (
               <>
-                <Check size={24} /> Log and Save
+                <Check size={24} /> {activeTab === 'ai' ? 'Log with AI' : 'Save Manual Record'}
               </>
             )}
           </button>
@@ -217,5 +312,27 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     </div>
   );
 };
+
+const MacroInput = ({ label, icon, value, unit, onChange, color, bg }: any) => (
+  <div className={`p-4 rounded-2xl border-2 border-slate-100 hover:border-emerald-300 transition-all ${bg}`}>
+    <div className="flex items-center gap-2 mb-2">
+      <div className={`${color}`}>
+        {icon}
+      </div>
+      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+    </div>
+    <div className="flex items-baseline gap-1">
+      <input 
+        type="number"
+        min="0"
+        value={value === 0 ? '' : value}
+        placeholder="0"
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        className="w-full bg-transparent outline-none font-black text-lg text-slate-800"
+      />
+      <span className="text-[10px] font-bold text-slate-300">{unit}</span>
+    </div>
+  </div>
+);
 
 export default MealLogger;
