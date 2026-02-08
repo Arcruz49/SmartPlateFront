@@ -526,7 +526,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
                 onClick={() => setSelectedMeal(null)}
                 className="flex-1 h-16 bg-slate-900 text-white hover:bg-black rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-slate-200 text-base"
               >
-                Close View
+                Close
               </button>
             </div>
           </div>
