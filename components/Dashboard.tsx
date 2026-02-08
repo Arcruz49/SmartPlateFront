@@ -68,14 +68,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
           targetCalories: userInsights.target_calories,
           proteingTargetG: userInsights.protein_target_g,
           carbsTargetG: userInsights.carbs_target_g,
-          fat_target_g: userInsights.fat_target_g, // types.ts might need alignment but we use the API fields
-        } as any);
-        
-        // Ensure naming alignment for the form based on user request fields
-        setTargetForm({
-          targetCalories: userInsights.target_calories,
-          proteingTargetG: userInsights.protein_target_g,
-          carbsTargetG: userInsights.carbs_target_g,
           fatTargetG: userInsights.fat_target_g
         });
 
@@ -101,7 +93,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
       const updated = await api.insights.updateTargets(token, targetForm);
       setInsights(updated);
       setIsEditingTargets(false);
-      // Refresh calculations
       await fetchData();
     } catch (err) {
       alert("Failed to update goals.");
@@ -218,6 +209,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
         </div>
       </header>
 
+      {/* Stats and Macros visualization */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col md:flex-row items-center gap-10">
           <div className="w-52 h-52 relative flex items-center justify-center shrink-0">
@@ -446,39 +438,43 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
         </div>
       )}
 
-      {/* Meal Detail Modal */}
+      {/* Meal Detail Modal - REDESIGNED */}
       {selectedMeal && (
         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full h-[94%] md:h-auto md:max-h-[92vh] md:max-w-2xl md:rounded-[3rem] rounded-t-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500 border border-white/20 flex flex-col relative">
+          <div className="bg-white w-full h-[94%] md:h-auto md:max-h-[92vh] md:max-w-3xl md:rounded-[3rem] rounded-t-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500 border border-white/20 flex flex-col relative">
             
-            <div className="relative shrink-0 h-36 md:h-44 bg-emerald-600 p-8 md:p-10 flex flex-col justify-end shadow-lg z-10">
+            {/* New Clean Header */}
+            <div className="relative shrink-0 pt-10 pb-6 px-8 md:px-12 flex flex-col">
               <button 
                 onClick={() => setSelectedMeal(null)}
-                className="absolute top-5 right-5 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-2xl transition-all"
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all"
               >
                 <X size={24} />
               </button>
-              <h3 className="text-white text-3xl md:text-4xl font-black truncate leading-tight pr-10">{selectedMeal.mealName}</h3>
-              <div className="flex gap-3 mt-3">
-                <span className="bg-white/15 text-emerald-50 px-3 py-1.5 rounded-xl text-[10px] md:text-[11px] font-black flex items-center gap-2 backdrop-blur-md border border-white/10">
-                   <Clock size={14} /> {formatTimeStr(selectedMeal.meal_time)}
+              
+              <h3 className="text-slate-800 text-3xl md:text-5xl font-black leading-tight pr-12">{selectedMeal.mealName}</h3>
+              
+              <div className="flex gap-3 mt-4">
+                <span className="bg-slate-100 text-slate-500 px-4 py-2 rounded-2xl text-[11px] font-black flex items-center gap-2 border border-slate-200 shadow-sm">
+                   <Clock size={16} className="text-emerald-500" /> {formatTimeStr(selectedMeal.meal_time)}
                 </span>
-                <span className="bg-white/15 text-emerald-50 px-3 py-1.5 rounded-xl text-[10px] md:text-[11px] font-black flex items-center gap-2 backdrop-blur-md border border-white/10">
-                   <Calendar size={14} /> {formatDateEN(currentDate)}
+                <span className="bg-slate-100 text-slate-500 px-4 py-2 rounded-2xl text-[11px] font-black flex items-center gap-2 border border-slate-200 shadow-sm">
+                   <Calendar size={16} className="text-emerald-500" /> {formatDateEN(currentDate)}
                 </span>
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 pb-36 md:pb-32 space-y-10">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-12 pb-36 md:pb-32 space-y-12">
               
-              <div className="grid grid-cols-4 gap-2 md:gap-4 pt-2">
-                <MacroBadge label="Kcal" value={selectedMeal.calories} color="bg-emerald-500" />
-                <MacroBadge label="Prot" value={Math.round(selectedMeal.protein_g)} unit="g" color="bg-blue-500" />
-                <MacroBadge label="Carb" value={Math.round(selectedMeal.carbs_g)} unit="g" color="bg-purple-500" />
-                <MacroBadge label="Fat" value={Math.round(selectedMeal.fat_g)} unit="g" color="bg-orange-500" />
+              {/* Refined Macro Grid inspired by the reference image */}
+              <div className="grid grid-cols-4 gap-3 md:gap-6 pt-2">
+                <ModernMacroCard label="KCAL" value={selectedMeal.calories} color="bg-[#10b981]" />
+                <ModernMacroCard label="PROT" value={Math.round(selectedMeal.protein_g)} unit="G" color="bg-[#3b82f6]" />
+                <ModernMacroCard label="CARB" value={Math.round(selectedMeal.carbs_g)} unit="G" color="bg-[#a855f7]" />
+                <ModernMacroCard label="FAT" value={Math.round(selectedMeal.fat_g)} unit="G" color="bg-[#f97316]" />
               </div>
 
-              <div className="space-y-10">
+              <div className="space-y-12">
                 {loadingMealDetail ? (
                   <div className="flex flex-col items-center py-16 text-slate-300">
                     <Loader2 size={48} className="animate-spin mb-4 text-emerald-500" />
@@ -486,24 +482,28 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-3 text-emerald-600 border-b border-emerald-50 pb-3">
-                        <Info size={22} />
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">Nutritional Insight</h4>
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 text-emerald-600 border-b border-emerald-50 pb-4">
+                        <div className="bg-emerald-100 p-2 rounded-xl">
+                          <Info size={20} />
+                        </div>
+                        <h4 className="text-xs font-black uppercase tracking-[0.2em]">Nutritional Insight</h4>
                       </div>
-                      <div className="text-slate-600 bg-emerald-50/10 p-6 md:p-8 rounded-[2rem] text-[15px] leading-relaxed border border-emerald-100/20 font-medium">
-                        {selectedMeal.explanation || 'Detailed analysis unavailable.'}
+                      <div className="text-slate-600 bg-slate-50 p-8 rounded-[2.5rem] text-lg leading-relaxed border border-slate-100 font-medium italic">
+                        "{selectedMeal.explanation || 'Detailed analysis unavailable.'}"
                       </div>
                     </div>
 
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-3 text-amber-500 border-b border-amber-50 pb-3">
-                        <Sparkles size={22} />
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">AI Coach Tip</h4>
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 text-amber-500 border-b border-amber-50 pb-4">
+                        <div className="bg-amber-50 p-2 rounded-xl">
+                          <Sparkles size={20} />
+                        </div>
+                        <h4 className="text-xs font-black uppercase tracking-[0.2em]">AI Coach Tip</h4>
                       </div>
-                      <div className="bg-gradient-to-br from-amber-50 to-amber-100/10 p-8 md:p-10 rounded-[2rem] border-2 border-amber-100/30 relative overflow-hidden">
-                        <MessageSquareQuote className="absolute -top-1 -right-1 text-amber-200 opacity-20" size={60} />
-                        <p className="text-amber-950 text-base md:text-lg italic font-bold leading-relaxed relative z-10 pr-2">
+                      <div className="bg-gradient-to-br from-amber-50 to-amber-100/10 p-10 rounded-[2.5rem] border-2 border-amber-100/30 relative overflow-hidden group hover:shadow-lg transition-all">
+                        <MessageSquareQuote className="absolute -top-2 -right-2 text-amber-200 opacity-20 group-hover:scale-110 transition-transform" size={80} />
+                        <p className="text-amber-950 text-xl md:text-2xl italic font-bold leading-relaxed relative z-10 pr-4">
                           "{selectedMeal.advice || 'Your advice is being prepared.'}"
                         </p>
                       </div>
@@ -513,19 +513,20 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
               </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-white/95 backdrop-blur-lg border-t border-slate-100 flex gap-4 z-50 shadow-[0_-8px_20px_rgba(0,0,0,0.03)] pb-8 md:pb-8">
+            {/* Sticky Actions Footer */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 bg-white/95 backdrop-blur-lg border-t border-slate-100 flex gap-4 z-50 shadow-[0_-15px_30px_rgba(0,0,0,0.05)] pb-10">
               <button 
                 onClick={() => handleDeleteMeal(selectedMeal.mealId)}
                 disabled={isDeleting}
-                className="flex-1 h-14 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl font-black flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 border border-red-100 text-sm md:text-base"
+                className="flex-1 h-16 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 border border-red-100 text-base shadow-sm"
               >
-                <Trash2 size={18} /> {isDeleting ? '...' : 'Remove'}
+                <Trash2 size={20} /> {isDeleting ? '...' : 'Remove Entry'}
               </button>
               <button 
                 onClick={() => setSelectedMeal(null)}
-                className="flex-1 h-14 bg-slate-900 text-white hover:bg-black rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-slate-200 text-sm md:text-base"
+                className="flex-1 h-16 bg-slate-900 text-white hover:bg-black rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-slate-200 text-base"
               >
-                Close
+                Close View
               </button>
             </div>
           </div>
@@ -578,13 +579,13 @@ const TargetCard = ({ icon, label, value, unit, color }: { icon: React.ReactNode
   </div>
 );
 
-const MacroBadge = ({ label, value, unit = '', color }: { label: string, value: number, unit?: string, color: string }) => (
-  <div className="flex flex-col items-center gap-2">
-    <div className={`w-full aspect-square rounded-[1.25rem] md:rounded-[1.75rem] ${color} flex flex-col items-center justify-center text-white shadow-lg transition-transform hover:scale-105`}>
-      <span className="text-base md:text-2xl font-black leading-none">{value}</span>
-      {unit && <span className="text-[8px] md:text-[10px] font-black uppercase opacity-70 mt-1">{unit}</span>}
+const ModernMacroCard = ({ label, value, unit = '', color }: { label: string, value: number, unit?: string, color: string }) => (
+  <div className="flex flex-col items-center gap-2 group">
+    <div className={`w-full aspect-square rounded-[2rem] md:rounded-[2.5rem] ${color} flex flex-col items-center justify-center text-white shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1`}>
+      <span className="text-xl md:text-4xl font-black leading-none">{value}</span>
+      {unit && <span className="text-[9px] md:text-xs font-black uppercase opacity-60 mt-2">{unit}</span>}
     </div>
-    <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{label}</span>
+    <span className="text-[9px] md:text-xs font-black text-slate-400 uppercase tracking-widest text-center mt-1">{label}</span>
   </div>
 );
 
