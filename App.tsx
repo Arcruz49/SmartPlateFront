@@ -7,7 +7,7 @@ import Profile from './components/Profile';
 import HistoryMetrics from './components/HistoryMetrics';
 import { AuthResponse } from './types';
 import { api } from './services/api';
-import { PieChart, Loader2, Apple, CheckCircle2, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { PieChart, Loader2, ArrowRight } from 'lucide-react';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthResponse | null>(null);
@@ -58,176 +58,117 @@ const App: React.FC = () => {
 
   if (!auth) {
     return (
-      <div className="min-h-screen bg-[#f0f9f4] flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-200/30 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-lime-200/30 rounded-full blur-[120px]" />
-        
-        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-2xl overflow-hidden border border-white/40 animate-in fade-in zoom-in-95 duration-700 relative z-10">
-          
-          {/* Left Side: Branding & Info (Hidden on mobile) */}
-          <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+      <div className="min-h-screen bg-black flex flex-col text-white font-sans">
+        {/* Header */}
+        <div className="p-8 pb-4 flex items-center gap-2">
+            <div className="bg-white text-black p-1 rounded-full">
+               <PieChart size={24} fill="currentColor" strokeWidth={0} />
+            </div>
+            <span className="text-2xl font-bold tracking-tighter">SmartPlate</span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-[450px] bg-[#121212] rounded-lg p-8 md:p-14 flex flex-col items-center">
             
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-12">
-                <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
-                  <PieChart size={32} />
-                </div>
-                <span className="text-2xl font-black tracking-tight">SmartPlate</span>
-              </div>
-              
-              <h1 className="text-5xl font-black leading-tight mb-6">
-                Elevate your <br />
-                <span className="text-lime-300">nutrition</span> with AI.
-              </h1>
-              
-              <div className="space-y-6 text-emerald-50">
-                <div className="flex items-start gap-4">
-                  <div className="bg-white/10 p-2 rounded-lg mt-1"><Sparkles size={20} /></div>
-                  <div>
-                    <p className="font-bold text-lg">AI Meal Analysis</p>
-                    <p className="text-sm opacity-80">Just snap a photo and let our AI calculate your calories and macros.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="bg-white/10 p-2 rounded-lg mt-1"><CheckCircle2 size={20} /></div>
-                  <div>
-                    <p className="font-bold text-lg">Personalized Targets</p>
-                    <p className="text-sm opacity-80">Nutritional goals based on your specific biometrics and routine.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="bg-white/10 p-2 rounded-lg mt-1"><ShieldCheck size={20} /></div>
-                  <div>
-                    <p className="font-bold text-lg">Privacy First</p>
-                    <p className="text-sm opacity-80">Your health data is secure and used only to improve your journey.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Side: Auth Form */}
-          <div className="p-8 md:p-14 lg:p-16 flex flex-col justify-center">
-            <div className="lg:hidden flex items-center gap-2 mb-10">
-              <div className="bg-emerald-600 p-2 rounded-xl text-white">
-                <PieChart size={24} />
-              </div>
-              <span className="text-xl font-black text-slate-800">SmartPlate</span>
-            </div>
-
-            <div className="mb-10">
-              <h2 className="text-3xl font-black text-slate-800 mb-2">
-                {isLogin ? 'Welcome back' : 'Create account'}
-              </h2>
-              <p className="text-slate-500 font-medium">
-                {isLogin ? 'Log in to your account to continue' : 'Start your healthy journey with us today'}
-              </p>
-            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-center mb-10">
+               {isLogin ? 'Log in to SmartPlate' : 'Sign up for free'}
+            </h1>
 
             {error && (
-              <div className="mb-8 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 flex items-center gap-3 animate-in shake duration-500">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="w-full mb-6 p-3 bg-[#e91429] text-white text-sm font-medium rounded-md flex items-center justify-center text-center">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleAuth} className="space-y-5">
+            <form onSubmit={handleAuth} className="w-full space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      placeholder="e.g. John Doe" 
-                      required 
-                      value={name} 
-                      onChange={e => setName(e.target.value)} 
-                      className="auth-input pl-5" 
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold">What's your name?</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter your profile name" 
+                    required 
+                    value={name} 
+                    onChange={e => setName(e.target.value)} 
+                    className="spotify-input" 
+                  />
                 </div>
               )}
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+              
+              <div className="space-y-1">
+                <label className="text-sm font-bold">Email address</label>
                 <input 
                   type="email" 
-                  placeholder="john@example.com" 
+                  placeholder="name@domain.com" 
                   required 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  className="auth-input pl-5" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  required 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  className="auth-input pl-5" 
+                  className="spotify-input" 
                 />
               </div>
 
-              <div className="pt-4">
+              <div className="space-y-1">
+                <label className="text-sm font-bold">Password</label>
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  required 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  className="spotify-input" 
+                />
+              </div>
+
+              <div className="pt-6">
                 <button 
                   type="submit" 
                   disabled={loading} 
-                  className="w-full py-4.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 text-lg py-4"
+                  className="w-full py-3.5 bg-[#1ed760] hover:bg-[#1fdf64] hover:scale-105 active:scale-100 transition-all text-black font-bold rounded-full flex items-center justify-center gap-2 disabled:opacity-50 text-base tracking-wide"
                 >
                   {loading ? (
-                    <Loader2 className="animate-spin" size={24} />
+                    <Loader2 className="animate-spin" size={20} />
                   ) : (
-                    <>
-                      {isLogin ? 'Sign In' : 'Join Now'}
-                      <ArrowRight size={20} />
-                    </>
+                    isLogin ? 'Log In' : 'Sign Up'
                   )}
                 </button>
               </div>
             </form>
 
-            <div className="mt-10 pt-10 border-t border-slate-100 text-center">
-              <p className="text-slate-400 font-bold mb-4">
-                {isLogin ? "Don't have an account yet?" : "Already have an account?"}
+            <div className="mt-8 border-t border-[#292929] pt-8 w-full text-center">
+              <p className="text-[#a7a7a7] font-medium mb-4">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
               </p>
               <button 
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError(null);
                 }} 
-                className="text-emerald-600 font-black text-sm uppercase tracking-widest hover:text-emerald-700 transition-colors inline-flex items-center gap-2 group"
+                className="text-white hover:text-[#1ed760] font-bold text-sm uppercase tracking-widest transition-colors"
               >
-                {isLogin ? 'Create a new account' : 'Sign in to existing account'}
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:scale-150 transition-transform" />
+                {isLogin ? 'Sign up for SmartPlate' : 'Log in'}
               </button>
             </div>
           </div>
         </div>
-
         <style>{`
-          .auth-input { 
-            width: 100%; 
-            padding: 1rem 1.25rem; 
-            background: #f8fafc; 
-            border: 2px solid #f1f5f9; 
-            border-radius: 1.25rem; 
-            outline: none; 
-            font-weight: 600; 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            color: #1e293b;
-          }
-          .auth-input:focus { 
-            border-color: #10b981; 
-            background: #fff; 
-            box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.1); 
-          }
-          .auth-input::placeholder {
-            color: #cbd5e1;
+          .spotify-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: #121212;
+            border: 1px solid #727272;
+            border-radius: 4px;
+            color: white;
             font-weight: 500;
+            outline: none;
+            transition: all 0.2s;
+          }
+          .spotify-input:focus {
+            border-color: white;
+            box-shadow: 0 0 0 1px white;
+          }
+          .spotify-input:hover:not(:focus) {
+            border-color: #a7a7a7;
           }
         `}</style>
       </div>

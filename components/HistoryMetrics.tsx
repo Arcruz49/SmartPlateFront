@@ -4,7 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Legend, LineChart, Line
 } from 'recharts';
-import { Calendar, TrendingUp, BarChart3, Loader2, Zap, Flame, Target, Info, Scale } from 'lucide-react';
+import { TrendingUp, BarChart3, Loader2, Zap, Flame, Target, Scale, Calendar } from 'lucide-react';
 import { api } from '../services/api';
 import { DailyMetrics, BodyMetrics } from '../types';
 
@@ -27,11 +27,9 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
           api.metrics.getBodyMetrics(token)
         ]);
         
-        // Sort meal metrics by date
         const sortedMeal = mealData.sort((a, b) => new Date(a.meal_date).getTime() - new Date(b.meal_date).getTime());
         setMetrics(sortedMeal);
 
-        // Sort body metrics by date
         const sortedBody = bodyData.sort((a, b) => new Date(a.metricDate).getTime() - new Date(b.metricDate).getTime());
         setBodyMetrics(sortedBody);
       } catch (err) {
@@ -59,173 +57,169 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
   const weightDiff = bodyMetrics.length > 1 ? (bodyMetrics[bodyMetrics.length - 1].weightKg - bodyMetrics[0].weightKg).toFixed(1) : '0';
 
   if (loading && metrics.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-[50vh] text-slate-500">
-      <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-        <Loader2 size={32} className="text-emerald-500 animate-spin" />
-      </div>
-      <p className="text-lg font-bold text-slate-400">Synthesizing history data...</p>
+    <div className="flex flex-col items-center justify-center h-[50vh] text-[#a7a7a7]">
+      <Loader2 size={40} className="text-[#1ed760] animate-spin mb-4" />
+      <p className="font-bold text-xs uppercase tracking-widest">Crunching Numbers</p>
     </div>
   );
 
   return (
-    <div className="space-y-8 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-8 pb-20 animate-in fade-in duration-700">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#282828] pb-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-              <BarChart3 size={32} />
-            </div>
-            Analytics
-          </h2>
-          <p className="text-slate-500 font-medium mt-1">Track your progress and nutritional trends.</p>
+           <span className="text-xs font-bold text-[#1ed760] uppercase tracking-widest">Analytics</span>
+           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Trends</h1>
         </div>
 
-        <div className="flex p-1 bg-white border border-slate-200 rounded-2xl w-fit shadow-sm">
+        <div className="bg-[#242424] p-1 rounded-full flex">
           <button 
             onClick={() => setRange('week')}
-            className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${range === 'week' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${range === 'week' ? 'bg-[#3e3e3e] text-white' : 'text-[#a7a7a7] hover:text-white'}`}
           >
-            Weekly
+            Last 7 Days
           </button>
           <button 
             onClick={() => setRange('month')}
-            className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${range === 'month' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${range === 'month' ? 'bg-[#3e3e3e] text-white' : 'text-[#a7a7a7] hover:text-white'}`}
           >
-            Monthly
+            Last 30 Days
           </button>
         </div>
       </header>
 
       {metrics.length === 0 && bodyMetrics.length === 0 ? (
-        <div className="bg-white p-20 rounded-[3rem] border-4 border-dashed border-slate-100 text-center text-slate-300">
-          <TrendingUp size={64} className="mx-auto mb-6 opacity-20" />
-          <p className="text-xl font-black mb-2 text-slate-400">Insufficient Data</p>
-          <p className="text-sm font-medium">Log meals and profile info for a few more days to see trends.</p>
+        <div className="bg-[#181818] p-20 rounded-lg text-center text-[#a7a7a7]">
+          <BarChart3 size={64} className="mx-auto mb-6 opacity-20" />
+          <p className="text-xl font-bold text-white mb-2">No Data Yet</p>
+          <p className="text-sm">Log some meals to see your stats visualised here.</p>
         </div>
       ) : (
         <>
-          {/* Average Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <MetricSummaryCard label="Avg. Calories" value={`${averages?.calories || 0}`} unit="kcal" icon={<Flame className="text-orange-500" />} />
-            <MetricSummaryCard label="Avg. Protein" value={`${averages?.protein || 0}`} unit="g" icon={<Target className="text-blue-500" />} />
-            <MetricSummaryCard label="Current Weight" value={`${currentWeight || '---'}`} unit="kg" icon={<Scale className="text-emerald-600" />} />
-            <MetricSummaryCard label="Weight Diff." value={`${weightDiff}`} unit="kg" icon={<TrendingUp className={parseFloat(weightDiff) > 0 ? "text-red-500" : "text-emerald-500"} />} />
-            <MetricSummaryCard label="Avg. Carbs" value={`${averages?.carbs || 0}`} unit="g" icon={<Zap className="text-purple-500" />} />
+          {/* Stats Overview Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <StatBox label="Avg. Calories" value={averages?.calories} unit="kcal" />
+            <StatBox label="Avg. Protein" value={averages?.protein} unit="g" />
+            <StatBox label="Avg. Carbs" value={averages?.carbs} unit="g" />
+            <StatBox label="Current Weight" value={currentWeight} unit="kg" />
+            <StatBox label="Trend" value={weightDiff} unit="kg" colored={true} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Calories Trend */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50">
-              <h3 className="text-lg font-black text-slate-800 mb-8 flex items-center gap-2">
-                <Flame size={18} className="text-orange-500" />
-                Caloric Intake Trend
+            {/* Calories Area Chart */}
+            <div className="bg-[#181818] p-6 rounded-lg border border-[#282828]">
+              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                 <Flame size={18} className="text-[#1ed760]" /> Caloric Intake
               </h3>
-              <div className="h-72 w-full">
+              <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={metrics}>
                     <defs>
                       <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#1ed760" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#1ed760" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
                     <XAxis 
                       dataKey="meal_date" 
                       tickFormatter={formatDateLabel} 
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                       dy={10}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                     />
                     <Tooltip 
-                      contentStyle={{borderRadius: '1.25rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'}}
+                      contentStyle={{backgroundColor: '#282828', borderRadius: '8px', border: 'none', color: 'white'}}
+                      itemStyle={{color: '#1ed760'}}
+                      labelStyle={{color: '#a7a7a7', fontWeight: 'bold'}}
                       labelFormatter={formatDateLabel}
                     />
-                    <Area type="monotone" dataKey="calories_total" name="Calories" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorCal)" />
+                    <Area type="monotone" dataKey="calories_total" name="Calories" stroke="#1ed760" strokeWidth={2} fillOpacity={1} fill="url(#colorCal)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Weight Variation Trend */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50">
-              <h3 className="text-lg font-black text-slate-800 mb-8 flex items-center gap-2">
-                <Scale size={18} className="text-emerald-600" />
-                Weight Variation Trend
+            {/* Weight Line Chart */}
+            <div className="bg-[#181818] p-6 rounded-lg border border-[#282828]">
+              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                 <Scale size={18} className="text-[#1ed760]" /> Weight Trend
               </h3>
-              <div className="h-72 w-full">
+              <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={bodyMetrics}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
                     <XAxis 
                       dataKey="metricDate" 
                       tickFormatter={formatDateLabel} 
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                       dy={10}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
                       domain={['auto', 'auto']}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                     />
                     <Tooltip 
-                      contentStyle={{borderRadius: '1.25rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'}}
+                      contentStyle={{backgroundColor: '#282828', borderRadius: '8px', border: 'none', color: 'white'}}
+                      itemStyle={{color: '#1ed760'}}
+                      labelStyle={{color: '#a7a7a7', fontWeight: 'bold'}}
                       labelFormatter={formatDateLabel}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="weightKg" 
-                      name="Weight (kg)" 
-                      stroke="#059669" 
-                      strokeWidth={3} 
-                      dot={{ r: 6, fill: '#059669', strokeWidth: 2, stroke: '#fff' }}
-                      activeDot={{ r: 8, strokeWidth: 0 }} 
+                      name="Weight" 
+                      stroke="#fff" 
+                      strokeWidth={2} 
+                      dot={{ r: 4, fill: '#1ed760', strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: '#fff' }} 
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Macros Stacked Chart */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 lg:col-span-2">
-              <h3 className="text-lg font-black text-slate-800 mb-8 flex items-center gap-2">
-                <Zap size={18} className="text-purple-500" />
-                Macronutrient Balance
+            {/* Macros Bar Chart */}
+            <div className="bg-[#181818] p-6 rounded-lg border border-[#282828] lg:col-span-2">
+              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                 <Zap size={18} className="text-[#1ed760]" /> Macronutrient Balance
               </h3>
-              <div className="h-72 w-full">
+              <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metrics}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
                     <XAxis 
                       dataKey="meal_date" 
                       tickFormatter={formatDateLabel} 
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                       dy={10}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                      tick={{fill: '#a7a7a7', fontSize: 10, fontWeight: 700}}
                     />
                     <Tooltip 
-                      contentStyle={{borderRadius: '1.25rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'}}
+                      cursor={{fill: '#282828', opacity: 0.5}}
+                      contentStyle={{backgroundColor: '#282828', borderRadius: '8px', border: 'none', color: 'white'}}
+                      labelStyle={{color: '#a7a7a7', fontWeight: 'bold'}}
                       labelFormatter={formatDateLabel}
                     />
-                    <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '10px', fontWeight: 'bold'}} />
-                    <Bar dataKey="protein_g_total" name="Protein" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="carbs_g_total" name="Carbs" stackId="a" fill="#a855f7" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="fat_g_total" name="Fat" stackId="a" fill="#10b981" radius={[10, 10, 0, 0]} />
+                    <Legend wrapperStyle={{paddingTop: '20px'}} />
+                    <Bar dataKey="protein_g_total" name="Protein" stackId="a" fill="#3b82f6" />
+                    <Bar dataKey="carbs_g_total" name="Carbs" stackId="a" fill="#a855f7" />
+                    <Bar dataKey="fat_g_total" name="Fat" stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -237,18 +231,20 @@ const HistoryMetrics: React.FC<HistoryMetricsProps> = ({ token }) => {
   );
 };
 
-const MetricSummaryCard = ({ label, value, unit, icon }: { label: string, value: string, unit: string, icon: React.ReactNode }) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
-    <div className="p-3 bg-slate-50 rounded-2xl shrink-0">
-      {icon}
-    </div>
-    <div className="min-w-0">
-      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest truncate">{label}</p>
-      <p className="text-xl font-black text-slate-800 leading-tight truncate">
-        {value} <span className="text-xs font-bold text-slate-400">{unit}</span>
-      </p>
-    </div>
-  </div>
-);
+const StatBox = ({ label, value, unit, colored }: any) => {
+    let colorClass = "text-white";
+    if (colored) {
+        const num = parseFloat(value);
+        if (num > 0) colorClass = "text-[#e91429]";
+        if (num < 0) colorClass = "text-[#1ed760]";
+    }
+
+    return (
+        <div className="bg-[#181818] p-4 rounded-lg border border-[#282828] flex flex-col items-center justify-center hover:bg-[#282828] transition-colors">
+            <span className={`text-2xl font-bold ${colorClass}`}>{value || 0}</span>
+            <span className="text-[10px] text-[#a7a7a7] uppercase font-bold mt-1">{label} ({unit})</span>
+        </div>
+    );
+};
 
 export default HistoryMetrics;
