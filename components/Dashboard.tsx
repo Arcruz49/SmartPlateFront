@@ -62,7 +62,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
 
       if (userInsights) {
         setInsights(userInsights);
-        // Fix: Use 'fatTargetG' to match the state interface property name.
         setTargetForm({
           targetCalories: userInsights.target_calories,
           proteingTargetG: userInsights.protein_target_g,
@@ -257,7 +256,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
         </div>
       </div>
 
-      {/* Meals Section - Re-designed Cards */}
+      {/* Meals Section */}
       <section>
         <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-[#1ed760] pl-6">
             <div>
@@ -304,12 +303,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
                            <MacroMini label="Fat" value={Math.round(meal.fat_g)} color="text-orange-500" />
                        </div>
 
-                       <button 
-                         onClick={(e) => { e.stopPropagation(); handleDeleteMeal(meal.mealId); }}
-                         className="absolute top-6 right-6 text-[#444] hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-lg"
-                       >
-                         <Trash2 size={16} />
-                       </button>
                    </div>
                ))}
            </div>
@@ -339,23 +332,30 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
         </div>
       )}
 
-      {/* Meal Detail Modal */}
+      {/* Meal Detail Modal - MOBILE OPTIMIZED */}
       {selectedMeal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-lg p-4 animate-in zoom-in-95 duration-300">
-           <div className="bg-[#121212] w-full max-w-4xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col border border-[#282828] shadow-2xl shadow-black">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-lg p-0 md:p-4 animate-in zoom-in-95 duration-300">
+           <div className="bg-[#121212] w-full h-full md:h-auto md:max-w-4xl md:max-h-[92vh] md:rounded-2xl overflow-hidden flex flex-col border-0 md:border border-[#282828] shadow-2xl relative">
               
-              <div className="bg-gradient-to-b from-[#222] to-[#121212] p-12 relative border-b border-[#222]">
-                  <button onClick={() => setSelectedMeal(null)} className="absolute top-8 right-8 bg-[#121212]/80 hover:bg-white hover:text-black p-3 rounded-full text-white transition-all"><X size={24} /></button>
-                  <span className="text-[#1ed760] font-black text-xs uppercase tracking-[0.3em] mb-4 block">Analyzing Meal</span>
-                  <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-none tracking-tighter">{selectedMeal.mealName}</h1>
-                  <div className="flex items-center gap-6 text-sm font-bold text-[#666]">
-                      <span className="flex items-center gap-2 bg-[#121212]/50 px-4 py-2 rounded-xl"><Clock size={16} /> {formatTimeStr(selectedMeal.meal_time)}</span>
-                      <span className="flex items-center gap-2 bg-[#121212]/50 px-4 py-2 rounded-xl"><Flame size={16} /> {selectedMeal.calories} kcal</span>
+              {/* Responsive Header */}
+              <div className="bg-gradient-to-b from-[#222] to-[#121212] p-8 md:p-12 relative border-b border-[#222] shrink-0">
+                  <button 
+                    onClick={() => setSelectedMeal(null)} 
+                    className="absolute top-4 right-4 md:top-8 md:right-8 bg-[#121212]/80 hover:bg-white hover:text-black p-2.5 rounded-full text-white transition-all z-20"
+                  >
+                    <X size={20} />
+                  </button>
+                  <span className="text-[#1ed760] font-black text-[10px] md:text-xs uppercase tracking-[0.3em] mb-3 block">Analyzing Meal</span>
+                  <h1 className="text-3xl md:text-6xl font-black text-white mb-4 md:mb-6 leading-tight tracking-tighter pr-8 md:pr-0 truncate md:whitespace-normal">{selectedMeal.mealName}</h1>
+                  <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm font-bold text-[#666]">
+                      <span className="flex items-center gap-2 bg-[#121212]/50 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl"><Clock size={16} className="text-[#1ed760]" /> {formatTimeStr(selectedMeal.meal_time)}</span>
+                      <span className="flex items-center gap-2 bg-[#121212]/50 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl"><Flame size={16} className="text-[#1ed760]" /> {selectedMeal.calories} kcal</span>
                   </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar space-y-8 md:space-y-12 pb-32 md:pb-12">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                       <MacroBox label="ENERGY" value={selectedMeal.calories} unit="kcal" color="text-white" />
                       <MacroBox label="PROTEIN" value={Math.round(selectedMeal.protein_g)} unit="g" color="text-blue-500" />
                       <MacroBox label="CARBS" value={Math.round(selectedMeal.carbs_g)} unit="g" color="text-purple-500" />
@@ -363,21 +363,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
                   </div>
 
                   {loadingMealDetail ? (
-                      <div className="py-20 flex flex-col items-center gap-4 text-[#666]">
-                        <Loader2 className="animate-spin text-[#1ed760] w-12 h-12" />
-                        <span className="text-xs font-black uppercase tracking-widest">Generating detailed coach data...</span>
+                      <div className="py-12 md:py-20 flex flex-col items-center gap-4 text-[#666]">
+                        <Loader2 className="animate-spin text-[#1ed760] w-10 h-10 md:w-12 md:h-12" />
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Generating detailed coach data...</span>
                       </div>
                   ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="bg-[#181818] p-8 rounded-2xl border border-[#222]">
-                              <h4 className="text-white font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2 opacity-60"><Info size={16} /> Nutrition Context</h4>
-                              <p className="text-[#999] leading-relaxed text-lg italic">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                          <div className="bg-[#181818] p-6 md:p-8 rounded-xl md:rounded-2xl border border-[#222]">
+                              <h4 className="text-white font-black text-[10px] md:text-xs uppercase tracking-widest mb-4 md:mb-6 flex items-center gap-2 opacity-60"><Info size={16} /> Nutrition Context</h4>
+                              <p className="text-[#999] leading-relaxed text-sm md:text-lg italic font-medium">
                                   {selectedMeal.explanation || 'Detailed breakdown unavailable.'}
                               </p>
                           </div>
-                          <div className="bg-gradient-to-br from-[#1ed760]/5 to-transparent p-8 rounded-2xl border border-[#1ed760]/10">
-                              <h4 className="text-[#1ed760] font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2"><Sparkles size={16} /> Meal Coach Recommendation</h4>
-                              <p className="text-white font-bold leading-relaxed text-2xl">
+                          <div className="bg-gradient-to-br from-[#1ed760]/5 to-transparent p-6 md:p-8 rounded-xl md:rounded-2xl border border-[#1ed760]/10">
+                              <h4 className="text-[#1ed760] font-black text-[10px] md:text-xs uppercase tracking-widest mb-4 md:mb-6 flex items-center gap-2"><Sparkles size={16} /> Coach Tip</h4>
+                              <p className="text-white font-bold leading-relaxed text-base md:text-2xl">
                                   "{selectedMeal.advice || 'Nutritional advice pending...'}"
                               </p>
                           </div>
@@ -385,19 +385,20 @@ const Dashboard: React.FC<DashboardProps> = ({ token, onLogout, onRedirectToProf
                   )}
               </div>
 
-              <div className="p-8 border-t border-[#222] bg-[#121212] flex justify-end gap-6">
+              {/* Sticky Action Footer (Better positioned for Mobile) */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 border-t border-[#222] bg-[#121212]/95 backdrop-blur-md flex gap-4 md:gap-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
                   <button 
                     onClick={() => handleDeleteMeal(selectedMeal.mealId)}
                     disabled={isDeleting}
-                    className="px-8 py-3 rounded-full text-[#666] hover:text-white font-black text-xs uppercase tracking-widest hover:bg-red-500/10 transition-all"
+                    className="flex-1 px-4 md:px-8 py-3.5 md:py-4 rounded-full text-[#666] hover:text-white font-black text-xs uppercase tracking-widest hover:bg-red-500/10 transition-all border border-[#222] hover:border-red-500/30"
                   >
-                     {isDeleting ? 'Wait...' : 'Discard Record'}
+                     {isDeleting ? 'Wait...' : 'Discard'}
                   </button>
                   <button 
                     onClick={() => setSelectedMeal(null)}
-                    className="bg-white text-black font-black px-12 py-4 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5"
+                    className="flex-[2] bg-white text-black font-black px-6 md:px-12 py-3.5 md:py-4 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5 text-sm uppercase tracking-tight"
                   >
-                     Keep Tracking
+                     Keep Meal
                   </button>
               </div>
            </div>
@@ -440,9 +441,9 @@ const MacroMini = ({ label, value, color }: any) => (
 );
 
 const MacroBox = ({ label, value, unit, color }: any) => (
-  <div className="bg-[#181818] p-6 rounded-2xl border border-[#222] text-center">
-    <span className={`text-3xl font-black block ${color}`}>{value}</span>
-    <span className="text-[10px] font-black text-[#666] uppercase tracking-widest mt-2 block">{label} ({unit})</span>
+  <div className="bg-[#181818] p-4 md:p-6 rounded-xl md:rounded-2xl border border-[#222] text-center flex flex-col justify-center transition-all hover:bg-[#222]">
+    <span className={`text-xl md:text-3xl font-black block ${color}`}>{value}</span>
+    <span className="text-[8px] md:text-[10px] font-black text-[#666] uppercase tracking-widest mt-1 md:mt-2 block">{label} ({unit})</span>
   </div>
 );
 
