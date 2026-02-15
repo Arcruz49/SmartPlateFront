@@ -192,6 +192,19 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     }
   };
 
+  useEffect(() => {
+    const debug = (code: string) => {
+      console.log("🔍 Debug scan:", code);
+      handleBarcodeScanned(code);
+    };
+
+    (window as any).debugScan = debug;
+
+    return () => {
+      delete (window as any).debugScan;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mealName) return;
