@@ -69,19 +69,25 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     const viewport = document.getElementById("barcode-scanner-viewport");
     if (!viewport) return;
 
+    // Verificar se o contexto é seguro (necessário para câmera no celular)
+    if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      setError("O scanner requer HTTPS para acessar a câmera no celular. Verifique sua conexão.");
+      setIsScanning(false);
+      return;
+    }
+
     setScannerLoading(true);
     setError(null);
 
     try {
-      // Forçar a solicitação de permissão nativa antes de iniciar a biblioteca
-      // Isso garante que o prompt do navegador apareça no celular
+      // Forçar a solicitação de permissão nativa
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "environment" } 
         });
         stream.getTracks().forEach(track => track.stop());
       } catch (e) {
-        console.error("Native permission check failed", e);
+        console.warn("Native permission prompt failed or denied", e);
       }
 
       if (scannerRef.current) {
@@ -99,36 +105,36 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         aspectRatio: 1.0
       };
 
-      // Tenta iniciar com a câmera traseira (environment)
-      await scanner.start(
-        { facingMode: "environment" },
-        config,
-        async (decodedText) => {
-          await handleBarcodeScanned(decodedText);
-        },
-        () => {}
-      );
+      // Tenta enumerar câmeras para selecionar a traseira explicitamente
+      const cameras = await Html5Qrcode.getCameras().catch(() => []);
+      if (cameras && cameras.length > 0) {
+        const backCamera = cameras.find(c => 
+          c.label.toLowerCase().includes('back') || 
+          c.label.toLowerCase().includes('traseira') ||
+          c.label.toLowerCase().includes('rear')
+        );
+        const cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
+        
+        await scanner.start(
+          cameraId,
+          config,
+          async (decodedText) => { await handleBarcodeScanned(decodedText); },
+          () => {}
+        );
+      } else {
+        // Fallback para restrições padrão
+        await scanner.start(
+          { facingMode: "environment" },
+          config,
+          async (decodedText) => { await handleBarcodeScanned(decodedText); },
+          () => {}
+        );
+      }
       
       setScannerLoading(false);
     } catch (err: any) {
-      console.error("Scanner error:", err);
-      // Se falhar "environment", tenta qualquer câmera disponível
-      try {
-        if (scannerRef.current) {
-          await scannerRef.current.start(
-            { facingMode: "user" },
-            { fps: 15, qrbox: { width: 280, height: 160 } },
-            async (decodedText) => await handleBarcodeScanned(decodedText),
-            () => {}
-          );
-          setScannerLoading(false);
-          return;
-        }
-      } catch (retryErr) {
-        console.error("Retry failed:", retryErr);
-      }
-      
-      setError("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se está usando HTTPS.");
+      console.error("Scanner startup error:", err);
+      setError("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
       setIsScanning(false);
       setScannerLoading(false);
     }
@@ -148,6 +154,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   };
 
   const handleBarcodeScanned = async (code: string) => {
+    if (navigator.vibrate) navigator.vibrate(200);
     await stopScanner();
     setIsScanning(false);
     setLoading(true);
@@ -155,6 +162,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     
     try {
       const data = await api.meals.getByBarcode(token, code);
+      console.log("Mapped Barcode Data:", data);
+      
       setMealName(data.mealName || '');
       setDescription(data.description || '');
       setManualMacros({
@@ -164,26 +173,12 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         fat: Number(data.fat_g) || 0
       });
     } catch (err: any) {
-      setError("Código detectado, mas produto não encontrado no banco de dados.");
+      setError("Código lido, mas dados não encontrados. Tente inserir manualmente.");
       setActiveTab('manual');
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const debug = (code: string) => {
-      console.log("🔍 Debug scan:", code);
-      handleBarcodeScanned(code);
-    };
-
-    (window as any).debugScan = debug;
-
-    return () => {
-      delete (window as any).debugScan;
-    };
-  }, []);
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -238,7 +233,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         onLogout();
         return;
       }
-      setError('Erro ao salvar refeição. Verifique sua conexão.');
+      setError('Erro ao salvar refeição. Verifique os dados e tente novamente.');
       console.error(err);
     } finally {
       setLoading(false);

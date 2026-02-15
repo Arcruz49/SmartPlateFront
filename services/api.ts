@@ -137,7 +137,24 @@ export const api = {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal-barcode?Code=${code}`, {
         headers: getHeaders(token),
       });
-      return handleResponse(res);
+      const data = await handleResponse(res);
+      
+      // Mapeamento para lidar com a estrutura aninhada retornada pelo backend
+      if (data && data.product) {
+        const nutriments = data.product.nutriments || {};
+        const keywords = data.product._keywords || [];
+        
+        return {
+          calories: Number(nutriments['energy-kcal']) || Number(data.calories) || 0,
+          protein_g: Number(nutriments.proteins) || Number(data.protein_g) || 0,
+          carbs_g: Number(nutriments.carbohydrates) || Number(data.carbs_g) || 0,
+          fat_g: Number(nutriments.fat) || Number(data.fat_g) || 0,
+          description: data.product.product_name || keywords.slice(0, 3).join(' ') || 'Produto Escaneado',
+          mealName: data.product.product_name || keywords.slice(0, 3).join(' ') || 'Produto Escaneado'
+        };
+      }
+      
+      return data;
     },
     delete: async (token: string, mealId: string): Promise<void> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal`, {
