@@ -52,10 +52,9 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     let timeoutId: number;
     
     if (activeTab === 'barcode' && isScanning) {
-      // Pequeno delay para garantir que o div "barcode-scanner-viewport" foi montado
       timeoutId = window.setTimeout(() => {
         startScanner();
-      }, 300);
+      }, 500);
     } else {
       stopScanner();
     }
@@ -72,40 +71,64 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
     setScannerLoading(true);
     setError(null);
+
     try {
-      // Se já houver um scanner instanciado e rodando, pare-o primeiro
+      // Forçar a solicitação de permissão nativa antes de iniciar a biblioteca
+      // Isso garante que o prompt do navegador apareça no celular
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "environment" } 
+        });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (e) {
+        console.error("Native permission check failed", e);
+      }
+
       if (scannerRef.current) {
         try {
           await scannerRef.current.stop();
-        } catch (e) {
-          // Ignora erro se já estiver parado
-        }
+        } catch (e) {}
       }
       
       const scanner = new Html5Qrcode("barcode-scanner-viewport");
       scannerRef.current = scanner;
 
       const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 150 },
+        fps: 15,
+        qrbox: { width: 280, height: 160 },
         aspectRatio: 1.0
       };
 
+      // Tenta iniciar com a câmera traseira (environment)
       await scanner.start(
         { facingMode: "environment" },
         config,
         async (decodedText) => {
-          console.log("Barcode detected:", decodedText);
           await handleBarcodeScanned(decodedText);
         },
-        (errorMessage) => {
-          // Ignora erros de frame (barcode não detectado no frame atual)
-        }
+        () => {}
       );
+      
       setScannerLoading(false);
     } catch (err: any) {
-      console.error("Scanner failed to start:", err);
-      setError("Câmera indisponível ou permissão negada.");
+      console.error("Scanner error:", err);
+      // Se falhar "environment", tenta qualquer câmera disponível
+      try {
+        if (scannerRef.current) {
+          await scannerRef.current.start(
+            { facingMode: "user" },
+            { fps: 15, qrbox: { width: 280, height: 160 } },
+            async (decodedText) => await handleBarcodeScanned(decodedText),
+            () => {}
+          );
+          setScannerLoading(false);
+          return;
+        }
+      } catch (retryErr) {
+        console.error("Retry failed:", retryErr);
+      }
+      
+      setError("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se está usando HTTPS.");
       setIsScanning(false);
       setScannerLoading(false);
     }
@@ -125,7 +148,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   };
 
   const handleBarcodeScanned = async (code: string) => {
-    // Parar scanner imediatamente ao detectar
     await stopScanner();
     setIsScanning(false);
     setLoading(true);
@@ -142,9 +164,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         fat: Number(data.fat_g) || 0
       });
     } catch (err: any) {
-      setError("Produto não encontrado. Preencha manualmente.");
-      console.error(err);
-      setActiveTab('manual'); // Opcional: redireciona para manual se não achar
+      setError("Código detectado, mas produto não encontrado no banco de dados.");
+      setActiveTab('manual');
     } finally {
       setLoading(false);
     }
@@ -203,7 +224,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         onLogout();
         return;
       }
-      setError('Erro ao salvar refeição. Verifique os dados.');
+      setError('Erro ao salvar refeição. Verifique sua conexão.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -229,7 +250,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
             </div>
             Registrar Refeição
           </h2>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Escolha o método de registro.</p>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Escolha seu método preferido.</p>
         </div>
 
         <div className="flex p-1 bg-slate-100 rounded-2xl w-full lg:w-fit overflow-x-auto no-scrollbar">
@@ -275,7 +296,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   maxLength={255}
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
-                  placeholder="Ex: Frango Grelhado e Arroz"
+                  placeholder="Ex: Almoço Saudável"
                   className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold pr-16"
                 />
                 <span className={`absolute bottom-4 right-4 text-[9px] font-bold ${mealName.length >= 255 ? 'text-red-500' : 'text-slate-300'}`}>
@@ -309,7 +330,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   value={description}
                   maxLength={2000}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva porções ou ingredientes..."
+                  placeholder="Detalhes sobre a porção..."
                   rows={4}
                   className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 focus:bg-white bg-slate-50 outline-none transition-all font-bold resize-none pr-4 pb-8"
                 />
@@ -334,7 +355,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     <>
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm cursor-pointer" onClick={() => setShowSourceSelector(true)}>
-                        <span className="text-white text-xs font-black uppercase tracking-widest">Alterar Imagem</span>
+                        <span className="text-white text-xs font-black uppercase tracking-widest">Trocar Imagem</span>
                       </div>
                       <button 
                         type="button"
@@ -360,50 +381,50 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
             {activeTab === 'barcode' && (
               <div className="space-y-6">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Leitor de Código</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Scanner de Barcode</label>
                 
                 {!isScanning && !mealName ? (
                   <button 
                     type="button"
                     onClick={() => setIsScanning(true)}
-                    className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-slate-300 hover:text-emerald-600 group"
+                    className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-slate-300 hover:text-emerald-600 group shadow-inner"
                   >
                     <div className="bg-slate-50 text-slate-300 p-6 rounded-3xl group-hover:bg-emerald-100 group-hover:text-emerald-600 group-hover:scale-110 transition-all mb-4">
                       <Barcode size={48} />
                     </div>
-                    <span className="text-sm font-black uppercase tracking-widest">Iniciar Scanner</span>
-                    <p className="text-[10px] font-bold opacity-50 mt-2 text-center px-6">Aponte para o código de barras para buscar informações nutricionais.</p>
+                    <span className="text-sm font-black uppercase tracking-widest">Ativar Câmera</span>
+                    <p className="text-[10px] font-bold opacity-50 mt-2 text-center px-6 leading-relaxed">Escaneie o código de barras de produtos para preenchimento automático.</p>
                   </button>
                 ) : isScanning ? (
-                  <div className="w-full h-[330px] bg-black rounded-3xl overflow-hidden relative shadow-2xl border-4 border-emerald-500/30">
+                  <div className="w-full h-[330px] bg-black rounded-3xl overflow-hidden relative shadow-2xl border-4 border-emerald-500/30 group">
                     <div id="barcode-scanner-viewport" className="w-full h-full min-h-[300px]"></div>
                     
                     {scannerLoading && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-30">
                         <Loader2 className="animate-spin text-white mb-2" size={32} />
-                        <span className="text-[10px] text-white font-black uppercase tracking-widest">Ativando Câmera...</span>
+                        <span className="text-[10px] text-white font-black uppercase tracking-widest">Acessando Câmera...</span>
                       </div>
                     )}
                     
                     <div className="absolute inset-0 pointer-events-none z-10">
                       <div className="w-full h-full relative flex flex-col items-center justify-center">
-                        <div className="w-[80%] h-[40%] border-2 border-emerald-500/50 rounded-2xl relative">
-                          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl"></div>
-                          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl"></div>
-                          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl"></div>
-                          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl"></div>
-                          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-500/50 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
+                        <div className="w-[85%] h-[45%] border-2 border-emerald-500/40 rounded-2xl relative">
+                          <div className="absolute -top-1 -left-1 w-10 h-10 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                          <div className="absolute -top-1 -right-1 w-10 h-10 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                          <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                          <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-4 border-r-4 border-emerald-500 rounded-br-xl shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-emerald-500/60 animate-pulse shadow-[0_0_20px_rgba(16,185,129,1)]"></div>
                         </div>
-                        <p className="mt-8 text-white font-black text-[10px] uppercase tracking-[0.2em] bg-black/40 px-4 py-2 rounded-full backdrop-blur">Posicione o código no quadro</p>
+                        <p className="mt-8 text-white font-black text-[10px] uppercase tracking-[0.2em] bg-black/60 px-6 py-2.5 rounded-full backdrop-blur-md border border-white/10">Mantenha estável para ler</p>
                       </div>
                     </div>
                     
                     <button 
                       type="button" 
                       onClick={() => setIsScanning(false)}
-                      className="absolute bottom-4 right-4 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md p-3 rounded-2xl text-white transition-all z-20 shadow-lg"
+                      className="absolute bottom-5 right-5 bg-slate-900/90 hover:bg-black backdrop-blur-md p-4 rounded-2xl text-white transition-all z-20 shadow-2xl active:scale-90"
                     >
-                      <X size={20} />
+                      <X size={24} />
                     </button>
                   </div>
                 ) : (
@@ -413,15 +434,15 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                         <Check size={16} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Produto Encontrado</p>
-                        <p className="text-xs font-bold text-slate-700">Dados preenchidos abaixo</p>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Encontrado!</p>
+                        <p className="text-xs font-bold text-slate-700">Macros atualizados.</p>
                       </div>
                       <button 
                         type="button" 
                         onClick={() => { resetForm(); setIsScanning(true); }}
-                        className="text-emerald-600 hover:text-emerald-700 font-black text-[10px] uppercase tracking-widest bg-white px-3 py-2 rounded-xl shadow-sm border border-emerald-100"
+                        className="text-emerald-600 hover:text-emerald-700 font-black text-[10px] uppercase tracking-widest bg-white px-4 py-2 rounded-xl shadow-sm border border-emerald-100"
                       >
-                        Refazer
+                        Rescan
                       </button>
                     </div>
                     
@@ -438,7 +459,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
             {activeTab === 'manual' && (
               <div className="space-y-4">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Valores Nutricionais</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Informações Nutricionais</label>
                 <div className="grid grid-cols-2 gap-4">
                   <MacroInput label="Calorias" icon={<Flame size={16} />} value={manualMacros.calories} unit="kcal" onChange={(v:number) => setManualMacros({...manualMacros, calories: v})} color="text-orange-500" bg="bg-orange-50" />
                   <MacroInput label="Proteínas" icon={<Target size={16} />} value={manualMacros.protein} unit="g" onChange={(v:number) => setManualMacros({...manualMacros, protein: v})} color="text-blue-500" bg="bg-blue-50" />
@@ -450,20 +471,20 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-50">
+        <div className="pt-6 border-t border-slate-100">
           <button
             type="submit"
             disabled={loading || !mealName}
             className={`w-full py-5 rounded-[1.5rem] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98] ${
               loading || !mealName 
                 ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100'
+                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 shadow-xl'
             }`}
           >
             {loading ? (
-              <><Loader2 size={24} className="animate-spin" /> {activeTab === 'ai' ? 'Analisando...' : 'Salvando...'}</>
+              <><Loader2 size={24} className="animate-spin" /> {activeTab === 'ai' ? 'Analisando...' : 'Gravando...'}</>
             ) : (
-              <><Check size={24} /> Finalizar Registro</>
+              <><Check size={24} /> Confirmar Registro</>
             )}
           </button>
         </div>
@@ -473,7 +494,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
            <div className="bg-white w-full md:max-w-sm rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500">
               <div className="flex justify-between items-center mb-8">
-                 <h3 className="text-xl font-black text-slate-800">Foto da Refeição</h3>
+                 <h3 className="text-xl font-black text-slate-800">Origem da Foto</h3>
                  <button onClick={() => setShowSourceSelector(false)} className="text-slate-400 hover:text-slate-600">
                    <X size={24} />
                  </button>
@@ -488,8 +509,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                        <Camera size={24} />
                     </div>
                     <div>
-                       <p className="font-black text-sm">Tirar Foto Agora</p>
-                       <p className="text-[10px] font-bold opacity-60">Usa a câmera do dispositivo</p>
+                       <p className="font-black text-sm">Câmera</p>
+                       <p className="text-[10px] font-bold opacity-60">Tire uma foto agora</p>
                     </div>
                  </button>
 
@@ -501,8 +522,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                        <ImageIcon size={24} />
                     </div>
                     <div>
-                       <p className="font-black text-sm">Escolher da Galeria</p>
-                       <p className="text-[10px] font-bold opacity-60">Escolha uma foto salva</p>
+                       <p className="font-black text-sm">Galeria</p>
+                       <p className="text-[10px] font-bold opacity-60">Escolha da sua biblioteca</p>
                     </div>
                  </button>
               </div>
