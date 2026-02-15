@@ -126,6 +126,19 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getByBarcode: async (token: string, code: string): Promise<{
+      calories: number,
+      protein_g: number,
+      carbs_g: number,
+      fat_g: number,
+      description: string,
+      mealName: string
+    }> => {
+      const res = await fetch(`${BASE_URL}/usermeals/usermeal-barcode?Code=${code}`, {
+        headers: getHeaders(token),
+      });
+      return handleResponse(res);
+    },
     delete: async (token: string, mealId: string): Promise<void> => {
       const res = await fetch(`${BASE_URL}/usermeals/usermeal`, {
         method: 'DELETE',

@@ -1,7 +1,8 @@
 
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2, CalendarClock, Sparkles, Settings2, Flame, Target, Zap, Coffee, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, X, Check, Loader2, CalendarClock, Sparkles, Settings2, Flame, Target, Zap, Coffee, Image as ImageIcon, Barcode, ScanLine } from 'lucide-react';
 import { api } from '../services/api';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface MealLoggerProps {
   token: string;
@@ -10,9 +11,15 @@ interface MealLoggerProps {
 }
 
 const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'manual' | 'barcode'>('ai');
   const [showSourceSelector, setShowSourceSelector] = useState(false);
   
+  // Barcode specific state
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerLoading, setScannerLoading] = useState(false);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
   const getNowFormatted = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -40,6 +47,85 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Barcode Scanning Logic
+  useEffect(() => {
+    if (activeTab === 'barcode' && isScanning && scannerContainerRef.current) {
+      startScanner();
+    } else {
+      stopScanner();
+    }
+    // Fix: Return a function that doesn't return the promise from stopScanner
+    return () => {
+      stopScanner();
+    };
+  }, [isScanning, activeTab]);
+
+  const startScanner = async () => {
+    setScannerLoading(true);
+    setError(null);
+    try {
+      if (scannerRef.current) await scannerRef.current.stop();
+      
+      const scanner = new Html5Qrcode("barcode-scanner-viewport");
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+        },
+        async (decodedText) => {
+          await handleBarcodeScanned(decodedText);
+        },
+        (errorMessage) => {
+          // Silent for scanning failures as they happen every frame
+        }
+      );
+    } catch (err) {
+      console.error("Scanner failed", err);
+      setError("Could not access camera for scanning.");
+      setIsScanning(false);
+    } finally {
+      setScannerLoading(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      } catch (err) {
+        console.error("Failed to stop scanner", err);
+      }
+    }
+  };
+
+  const handleBarcodeScanned = async (code: string) => {
+    setIsScanning(false); // Stop UI
+    setLoading(true); // Loading API
+    setError(null);
+    
+    try {
+      const data = await api.meals.getByBarcode(token, code);
+      setMealName(data.mealName || '');
+      setDescription(data.description || '');
+      setManualMacros({
+        calories: data.calories,
+        protein: data.protein_g,
+        carbs: data.carbs_g,
+        fat: data.fat_g
+      });
+      // Once data is loaded, we stay in the barcode tab but show the form
+    } catch (err: any) {
+      setError("Product not found in barcode database. Please try manual entry.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,6 +159,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           mealDate: mealDateTime 
         });
       } else {
+        // Works for both Manual and Barcode-Confirmed entries
         const [datePart, timePart] = mealDateTime.split('T');
         
         await api.meals.logManual(token, {
@@ -87,11 +174,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         });
       }
       
-      setMealName('');
-      setDescription('');
-      setMealDateTime(getNowFormatted());
-      setImagePreview(null);
-      setManualMacros({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+      resetForm();
       onSuccess();
     } catch (err: any) {
       if (err.message === 'Unauthorized' && onLogout) {
@@ -105,40 +188,56 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     }
   };
 
+  const resetForm = () => {
+    setMealName('');
+    setDescription('');
+    setMealDateTime(getNowFormatted());
+    setImagePreview(null);
+    setManualMacros({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    setIsScanning(false);
+  };
+
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
-      <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
             <div className="bg-emerald-500 text-white p-2 rounded-2xl shadow-lg shadow-emerald-200">
-              <Camera size={24} />
+              {activeTab === 'ai' ? <Sparkles size={24} /> : activeTab === 'manual' ? <Settings2 size={24} /> : <Barcode size={24} />}
             </div>
-            Log New Meal
+            Log Meal
           </h2>
-          <p className="text-sm text-slate-500 mt-2 font-medium">Choose how you want to record your nutrition.</p>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Record your daily intake easily.</p>
         </div>
 
-        <div className="flex p-1 bg-slate-100 rounded-2xl w-full md:w-fit self-start md:self-center">
+        <div className="flex p-1 bg-slate-100 rounded-2xl w-full lg:w-fit overflow-x-auto no-scrollbar">
           <button 
             type="button"
-            onClick={() => setActiveTab('ai')}
-            className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+            onClick={() => { setActiveTab('ai'); setIsScanning(false); }}
+            className={`flex-1 lg:flex-none whitespace-nowrap px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            <Sparkles size={14} /> AI Analysis
+            <Sparkles size={14} /> AI
           </button>
           <button 
             type="button"
-            onClick={() => setActiveTab('manual')}
-            className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${activeTab === 'manual' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+            onClick={() => { setActiveTab('barcode'); setIsScanning(false); }}
+            className={`flex-1 lg:flex-none whitespace-nowrap px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${activeTab === 'barcode' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            <Settings2 size={14} /> Manual Entry
+            <Barcode size={14} /> Barcode
+          </button>
+          <button 
+            type="button"
+            onClick={() => { setActiveTab('manual'); setIsScanning(false); }}
+            className={`flex-1 lg:flex-none whitespace-nowrap px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${activeTab === 'manual' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Settings2 size={14} /> Manual
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 md:p-10 space-y-8">
         {error && (
-          <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 animate-in shake duration-500">
+          <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 animate-in shake duration-500 text-center">
             {error}
           </div>
         )}
@@ -200,7 +299,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           </div>
 
           <div>
-            {activeTab === 'ai' ? (
+            {activeTab === 'ai' && (
               <>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
                 <div 
@@ -249,7 +348,83 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                   onChange={handleFileChange} 
                 />
               </>
-            ) : (
+            )}
+
+            {activeTab === 'barcode' && (
+              <div className="space-y-6">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Barcode Scanner</label>
+                
+                {!isScanning && !mealName ? (
+                  <button 
+                    type="button"
+                    onClick={() => setIsScanning(true)}
+                    className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-slate-300 hover:text-emerald-600 group"
+                  >
+                    <div className="bg-slate-50 text-slate-300 p-6 rounded-3xl group-hover:bg-emerald-100 group-hover:text-emerald-600 group-hover:scale-110 transition-all mb-4">
+                      <Barcode size={48} />
+                    </div>
+                    <span className="text-sm font-black uppercase tracking-widest">Start Scanning</span>
+                    <p className="text-[10px] font-bold opacity-50 mt-2 text-center px-6">Point camera at product barcode to fetch nutritional facts.</p>
+                  </button>
+                ) : isScanning ? (
+                  <div className="w-full h-[330px] bg-black rounded-3xl overflow-hidden relative shadow-2xl border-4 border-emerald-500/30">
+                    <div id="barcode-scanner-viewport" className="w-full h-full"></div>
+                    {scannerLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
+                        <Loader2 className="animate-spin text-white" size={32} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 pointer-events-none z-10">
+                      <div className="w-full h-full relative flex flex-col items-center justify-center">
+                        <div className="w-[80%] h-[40%] border-2 border-emerald-500/50 rounded-2xl relative">
+                          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl"></div>
+                          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl"></div>
+                          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl"></div>
+                          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl"></div>
+                          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-500/50 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
+                        </div>
+                        <p className="mt-8 text-white font-black text-[10px] uppercase tracking-[0.2em] bg-black/40 px-4 py-2 rounded-full backdrop-blur">Center barcode in frame</p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsScanning(false)}
+                      className="absolute bottom-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-2xl text-white transition-all z-20"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in duration-500">
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                      <div className="bg-emerald-500 text-white p-2 rounded-xl">
+                        <Check size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Product Found</p>
+                        <p className="text-xs font-bold text-slate-700">Data pre-filled below</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => { resetForm(); setIsScanning(true); }}
+                        className="text-emerald-600 hover:text-emerald-700 font-black text-[10px] uppercase tracking-widest bg-white px-3 py-2 rounded-xl shadow-sm border border-emerald-100"
+                      >
+                        Rescan
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <MacroInput label="Calories" icon={<Flame size={16} />} value={manualMacros.calories} unit="kcal" onChange={(v:number) => setManualMacros({...manualMacros, calories: v})} color="text-orange-500" bg="bg-orange-50" />
+                      <MacroInput label="Protein" icon={<Target size={16} />} value={manualMacros.protein} unit="g" onChange={(v:number) => setManualMacros({...manualMacros, protein: v})} color="text-blue-500" bg="bg-blue-50" />
+                      <MacroInput label="Carbs" icon={<Zap size={16} />} value={manualMacros.carbs} unit="g" onChange={(v:number) => setManualMacros({...manualMacros, carbs: v})} color="text-purple-500" bg="bg-purple-50" />
+                      <MacroInput label="Fats" icon={<Coffee size={16} />} value={manualMacros.fat} unit="g" onChange={(v:number) => setManualMacros({...manualMacros, fat: v})} color="text-amber-600" bg="bg-amber-50" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'manual' && (
               <div className="space-y-4">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nutritional Values</label>
                 <div className="grid grid-cols-2 gap-4">
@@ -311,7 +486,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
               </>
             ) : (
               <>
-                <Check size={24} /> {activeTab === 'ai' ? 'Log with AI' : 'Save Manual Record'}
+                <Check size={24} /> Log Record
               </>
             )}
           </button>
