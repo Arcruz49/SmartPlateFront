@@ -171,6 +171,20 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
     }
   };
 
+  useEffect(() => {
+    const debug = (code: string) => {
+      console.log("🔍 Debug scan:", code);
+      handleBarcodeScanned(code);
+    };
+
+    (window as any).debugScan = debug;
+
+    return () => {
+      delete (window as any).debugScan;
+    };
+  }, []);
+
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
