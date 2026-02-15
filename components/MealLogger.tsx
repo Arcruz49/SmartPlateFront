@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2, CalendarClock, Sparkles, Settings2, Flame, Target, Zap, Coffee } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, CalendarClock, Sparkles, Settings2, Flame, Target, Zap, Coffee, Image as ImageIcon } from 'lucide-react';
 import { api } from '../services/api';
 
 interface MealLoggerProps {
@@ -11,8 +11,8 @@ interface MealLoggerProps {
 
 const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
+  const [showSourceSelector, setShowSourceSelector] = useState(false);
   
-  // Get current local date/time in YYYY-MM-DDTHH:mm format
   const getNowFormatted = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -28,7 +28,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   const [mealDateTime, setMealDateTime] = useState(getNowFormatted());
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  // Manual macro state
   const [manualMacros, setManualMacros] = useState({
     calories: 0,
     protein: 0,
@@ -39,7 +38,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,6 +47,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+        setShowSourceSelector(false);
       };
       reader.readAsDataURL(file);
     }
@@ -65,7 +66,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           imageBytes = imagePreview.split(',')[1];
         }
 
-        // AI Entry: Single request to usermeal
         await api.meals.log(token, {
           mealName,
           description,
@@ -73,8 +73,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           mealDate: mealDateTime 
         });
       } else {
-        // Manual Entry: Single request to usermeal-rules
-        // Split ISO string YYYY-MM-DDTHH:mm into date and time
         const [datePart, timePart] = mealDateTime.split('T');
         
         await api.meals.logManual(token, {
@@ -89,7 +87,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         });
       }
       
-      // Success Cleanup
       setMealName('');
       setDescription('');
       setMealDateTime(getNowFormatted());
@@ -109,7 +106,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+    <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
       <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
@@ -121,7 +118,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           <p className="text-sm text-slate-500 mt-2 font-medium">Choose how you want to record your nutrition.</p>
         </div>
 
-        {/* Tab Switcher */}
         <div className="flex p-1 bg-slate-100 rounded-2xl w-full md:w-fit self-start md:self-center">
           <button 
             type="button"
@@ -169,12 +165,11 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
 
             <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <CalendarClock size={12} className="text-slate-400" /> Date & Time (24h)
+                <CalendarClock size={12} className="text-slate-400" /> Date & Time
               </label>
               <div className="relative group">
                 <input
                   type="datetime-local"
-                  lang="pt-BR"
                   max={getNowFormatted()}
                   value={mealDateTime}
                   onChange={(e) => setMealDateTime(e.target.value)}
@@ -209,36 +204,48 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
               <>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo Upload</label>
                 <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer relative overflow-hidden group"
+                  onClick={() => !imagePreview && setShowSourceSelector(true)}
+                  className={`w-full h-[330px] flex flex-col items-center justify-center border-4 border-dashed rounded-3xl transition-all relative overflow-hidden group ${
+                    imagePreview ? 'border-emerald-500' : 'border-slate-100 hover:border-emerald-500 hover:bg-emerald-50/30 cursor-pointer'
+                  }`}
                 >
                   {imagePreview ? (
                     <>
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm cursor-pointer" onClick={() => setShowSourceSelector(true)}>
                         <span className="text-white text-xs font-black uppercase tracking-widest">Change Image</span>
                       </div>
                       <button 
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setImagePreview(null); }}
-                        className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-xl text-slate-600 hover:text-red-500 transition-all"
+                        className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-xl text-slate-600 hover:text-red-500 transition-all z-10"
                       >
                         <X size={18} />
                       </button>
                     </>
                   ) : (
                     <div className="flex flex-col items-center p-8 text-slate-300 group-hover:text-emerald-500 transition-colors">
-                      <Upload size={40} className="mb-4" />
-                      <p className="text-sm font-black uppercase tracking-widest">Click to Upload</p>
-                      <p className="text-[10px] mt-2 font-bold opacity-50">PNG, JPG up to 10MB</p>
+                      <Camera size={40} className="mb-4" />
+                      <p className="text-sm font-black uppercase tracking-widest">Add Meal Photo</p>
+                      <p className="text-[10px] mt-2 font-bold opacity-50">Camera or Gallery</p>
                     </div>
                   )}
                 </div>
+                
+                {/* Hidden Inputs */}
                 <input 
                   type="file" 
                   className="hidden" 
                   accept="image/*" 
-                  ref={fileInputRef} 
+                  ref={galleryInputRef} 
+                  onChange={handleFileChange} 
+                />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  capture="environment" 
+                  ref={cameraInputRef} 
                   onChange={handleFileChange} 
                 />
               </>
@@ -283,11 +290,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
                     bg="bg-amber-50"
                   />
                 </div>
-                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 mt-4">
-                  <p className="text-[10px] font-bold text-emerald-700 leading-relaxed italic">
-                    Note: Manual values will be stored directly via the rules endpoint.
-                  </p>
-                </div>
               </div>
             )}
           </div>
@@ -315,6 +317,55 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
           </button>
         </div>
       </form>
+
+      {/* Image Source Selector Modal (Mobile Action Sheet Style) */}
+      {showSourceSelector && (
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full md:max-w-sm rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500">
+              <div className="flex justify-between items-center mb-8">
+                 <h3 className="text-xl font-black text-slate-800">Add Meal Photo</h3>
+                 <button onClick={() => setShowSourceSelector(false)} className="text-slate-400 hover:text-slate-600">
+                   <X size={24} />
+                 </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                 <button 
+                   onClick={() => cameraInputRef.current?.click()}
+                   className="flex items-center gap-4 p-5 rounded-2xl bg-emerald-50 text-emerald-700 border-2 border-emerald-100 hover:bg-emerald-100 transition-all text-left group"
+                 >
+                    <div className="bg-emerald-500 text-white p-3 rounded-xl shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                       <Camera size={24} />
+                    </div>
+                    <div>
+                       <p className="font-black text-sm">Tirar Foto Agora</p>
+                       <p className="text-[10px] font-bold opacity-60">Usa a câmera do dispositivo</p>
+                    </div>
+                 </button>
+
+                 <button 
+                   onClick={() => galleryInputRef.current?.click()}
+                   className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 text-slate-700 border-2 border-slate-100 hover:bg-slate-100 transition-all text-left group"
+                 >
+                    <div className="bg-slate-200 text-slate-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                       <ImageIcon size={24} />
+                    </div>
+                    <div>
+                       <p className="font-black text-sm">Escolher da Galeria</p>
+                       <p className="text-[10px] font-bold opacity-60">Escolha uma foto salva</p>
+                    </div>
+                 </button>
+              </div>
+
+              <button 
+                onClick={() => setShowSourceSelector(false)}
+                className="w-full mt-8 py-4 text-slate-400 font-black uppercase tracking-widest text-xs"
+              >
+                Cancelar
+              </button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
