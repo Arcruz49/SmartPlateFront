@@ -3,7 +3,7 @@ import { AuthResponse, UserData, UserInsights, Meal, DailyMetrics, BodyMetrics }
 
 const getServerUrl = () => {
   const hostname = window.location.hostname;
-  return `https://${hostname}:5052`;
+  return `http://${hostname}:5052`;
 };
 
 const BASE_URL = getServerUrl();
