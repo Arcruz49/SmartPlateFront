@@ -239,6 +239,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ token, onSuccess, onLogout }) =
         });
       }
       
+      
       resetForm();
       onSuccess();
     } catch (err: any) {
