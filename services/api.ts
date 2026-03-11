@@ -1,9 +1,10 @@
 
 import { AuthResponse, UserData, UserInsights, Meal, DailyMetrics, BodyMetrics } from '../types';
 
+const API_PORT = window.location.protocol === "https:" ? 7052 : 5052;
+
 const getServerUrl = () => {
-  const hostname = window.location.hostname;
-  return `http://${hostname}:5052`;
+  return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
 };
 
 const BASE_URL = getServerUrl();
